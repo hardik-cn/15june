@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modern Dark Monochrome Design System - Pure Black & White */
+
+@layer base {
+  :root {
+    /* Light theme */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
+
+    --primary: 0 0% 8%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 8%;
+
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 0 0% 90%;
+    --accent-foreground: 0 0% 8%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 0 0% 15%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 0 0% 25%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 0 0% 88%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 8%;
+
+    --gradinet: linear-gradient(315deg, #f0f0f0 15%, #0000);
+    --gradient-border: #f0f0f0;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 15%;
+    --sidebar-primary: 0 0% 8%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 8%;
+
+    --chart-1: 0 0% 8%;
+    --chart-2: 0 0% 25%;
+    --chart-3: 0 0% 45%;
+    --chart-4: 0 0% 65%;
+    --chart-5: 0 0% 80%;
+  }
+
+  .dark {
+    --background: 0 0% 3%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
+
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 0 0% 85%;
+    --success-foreground: 0 0% 0%;
+
+    --warning: 0 0% 75%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 15%;
+    --ring: 0 0% 100%;
+
+    --gradinet: linear-gradient(315deg, #212121 15%, #0000);
+    --gradient-border: #212121;
+
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 0 0% 100%;
+
+    --chart-1: 0 0% 95%;
+    --chart-2: 0 0% 75%;
+    --chart-3: 0 0% 55%;
+    --chart-4: 0 0% 35%;
+    --chart-5: 0 0% 20%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-mulish;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-mulish;
+  }
+
+  h1 {
+    @apply font-extrabold;
+  }
+
+  h2 {
+    @apply font-bold;
+  }
+
+  h3 {
+    @apply font-semibold;
+  }
+
+  h4,
+  h5,
+  h6 {
+    @apply font-medium;
+  }
+
+  button,
+  a {
+    @apply cursor-pointer font-mulish;
+  }
+}
+
+@layer components {
+
+  /* Modern glass effect for cards */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Subtle glow effect */
+  .glow-border {
+    box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.1);
+  }
+
+  /* Modern button hover */
+  .modern-hover {
+    @apply transition-all duration-300 hover:bg-accent hover:scale-[1.02];
+  }
+}
