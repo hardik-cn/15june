@@ -202,8 +202,6 @@ const KYCValidation = ({ onboardingId }: KYCValidationProps) => {
                     ...prev,
                     email: data.user.isEmailVerified,
                     phone: data.user.isPhoneVerified,
-                    // Use verifications.aadhaar (computed from both kycProfile AND
-                    // verificationDocument) to survive page reload before KYC submission
                     aadhar: Boolean(data.verifications?.aadhaar) || Boolean(data.kycProfile?.aadharVerified),
                     pan: Boolean(data.verifications?.pan) || Boolean(data.kycProfile?.panVerified),
                     cin: Boolean(data.verifications?.cin) || Boolean(data.kycProfile?.cinVerified),
@@ -758,14 +756,11 @@ const KYCValidation = ({ onboardingId }: KYCValidationProps) => {
                 cinVerified: !!verification.cin,
                 panVerified: !!verification.pan,
                 aadharVerified: !!verification.aadhar,
-                addressType: billingAddressSource === "gst" ? 1 : 0,
+                addressType: !isIndian && accountType === "individual" ? 1 : billingAddressSource === "gst" ? 1 : 0,
                 billingCurrency: selectedCountry === "India" ? "INR" : "USD",
-                internationalVerified:
-                    diditStatus === "Approved" || diditStatus === "In Review" ? 1 : 0,
-                representativeName:
-                    accountType === "enterprise"
-                        ? (enterpriseRepName || "").trim()
-                        : (diditFullName || "").trim(),
+                internationalVerified: diditStatus === "Approved" || diditStatus === "In Review" ? 1 : 0,
+                representativeName: accountType === "enterprise" ? (enterpriseRepName || "").trim()
+                    : (diditFullName || "").trim(),
             }));
 
             // Attach uploaded business documents

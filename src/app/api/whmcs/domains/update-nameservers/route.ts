@@ -2,18 +2,31 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { callWhmcsApi } from "@/lib/whmcs";
+import { z } from "zod";
+
+const updateNameserversSchema = z.object({
+    domainId: z.union([z.string(), z.number()]).transform(val => String(val)),
+    nameservers: z.array(z.string()).min(1, "At least one nameserver is required"),
+});
 
 export async function POST(req: Request) {
     try {
         const user = await getUserFromRequest(req);
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const body = await req.json();
-        const { domainId, nameservers } = body;
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+        }
 
-        if (!domainId || !nameservers?.length) {
+        const parsed = updateNameserversSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json({ error: "Domain ID and nameservers are required" }, { status: 400 });
         }
+
+        const { domainId, nameservers } = parsed.data;
 
         const params: any = { domainid: String(domainId) };
         nameservers.forEach((ns: string, idx: number) => {

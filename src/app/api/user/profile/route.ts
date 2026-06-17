@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { db } from "@/lib/db";
 import { logUserActivityFromRequest } from "@/lib/userActivityLog";
+import { updateWhmcsClientEmail, updateWhmcsUserEmail, updateWhmcsClientPhone } from "@/lib/whmcs/updateContact";
+import { getWhmcsUserId } from "@/lib/whmcs/changePassword";
+import { dialCodeToISO } from "@/lib/countries";
 
 export async function GET(req: Request) {
     try {
@@ -28,7 +31,40 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        return NextResponse.json(user);
+        // Fetch last changes to compute cooldown locks
+        const lastPhoneChange = await db.userActivityLog.findFirst({
+            where: {
+                userId: authUser.id,
+                logAction: "PHONE_NUMBER_CHANGED",
+                status: "success",
+            },
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
+        });
+
+        const lastEmailChange = await db.userActivityLog.findFirst({
+            where: {
+                userId: authUser.id,
+                logAction: "EMAIL_CHANGED",
+                status: "success",
+            },
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
+        });
+
+        const nextPhoneChangeAt = lastPhoneChange
+            ? new Date(lastPhoneChange.createdAt.getTime() + 24 * 60 * 60 * 1000)
+            : null;
+
+        const nextEmailChangeAt = lastEmailChange
+            ? new Date(lastEmailChange.createdAt.getTime() + 24 * 60 * 60 * 1000)
+            : null;
+
+        return NextResponse.json({
+            ...user,
+            nextPhoneChangeAt,
+            nextEmailChangeAt,
+        });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
     }
@@ -53,9 +89,41 @@ export async function PUT(req: Request) {
         const isPhoneChanged = (phone && phone !== current.phone) || (countryCode && countryCode !== current.countryCode);
 
         if (isEmailChanged) {
+            const lastEmailChange = await db.userActivityLog.findFirst({
+                where: {
+                    userId: authUser.id,
+                    logAction: "EMAIL_CHANGED",
+                    status: "success",
+                    createdAt: {
+                        gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                    }
+                },
+                orderBy: { createdAt: "desc" }
+            });
+            if (lastEmailChange) {
+                return NextResponse.json({ error: "You can only change your email address once every 24 hours." }, { status: 400 });
+            }
+
             const existing = await db.user.findUnique({ where: { email } });
             if (existing && existing.id !== authUser.id) {
                 return NextResponse.json({ error: "Email is already in use" }, { status: 400 });
+            }
+        }
+
+        if (isPhoneChanged) {
+            const lastPhoneChange = await db.userActivityLog.findFirst({
+                where: {
+                    userId: authUser.id,
+                    logAction: "PHONE_NUMBER_CHANGED",
+                    status: "success",
+                    createdAt: {
+                        gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                    }
+                },
+                orderBy: { createdAt: "desc" }
+            });
+            if (lastPhoneChange) {
+                return NextResponse.json({ error: "You can only change your mobile number once every 24 hours." }, { status: 400 });
             }
         }
 
@@ -103,7 +171,27 @@ export async function PUT(req: Request) {
                 },
             });
         }
-
+        // Sync with WHMCS
+        if (isEmailChanged && current.whmcsClientId) {
+            try {
+                await updateWhmcsClientEmail(current.whmcsClientId, email);
+                const whmcsUserId = await getWhmcsUserId(current.email);
+                if (whmcsUserId) {
+                    await updateWhmcsUserEmail(whmcsUserId, email);
+                }
+            } catch (err) {
+                console.error("WHMCS email sync failed during profile PUT:", err);
+            }
+        }
+        if (isPhoneChanged && current.whmcsClientId) {
+            try {
+                const whmcsCountryCode = dialCodeToISO(countryCode ?? current.countryCode);
+                const finalPhone = `${countryCode ?? current.countryCode}${phone ?? current.phone}`;
+                await updateWhmcsClientPhone(current.whmcsClientId, finalPhone, whmcsCountryCode);
+            } catch (err) {
+                console.error("WHMCS phone sync failed during profile PUT:", err);
+            }
+        }
         return NextResponse.json({ success: true, user: updated });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });

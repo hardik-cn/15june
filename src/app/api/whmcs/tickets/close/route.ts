@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { callWhmcsApi } from "@/lib/whmcs";
+import { z } from "zod";
+
+const closeTicketSchema = z.object({
+  ticketid: z.union([z.string(), z.number()]).transform(val => String(val)),
+});
 
 export async function POST(req: Request) {
   try {
@@ -9,12 +14,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { ticketid } = body;
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
 
-    if (!ticketid) {
+    const parsed = closeTicketSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json({ error: "Ticket ID is required" }, { status: 400 });
     }
+
+    const { ticketid } = parsed.data;
 
     const result = await callWhmcsApi("UpdateTicket", {
       ticketid: String(ticketid),

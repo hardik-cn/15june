@@ -3,6 +3,12 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { callWhmcsApi } from "@/lib/whmcs";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { z } from "zod";
+
+const inviteUserSchema = z.object({
+    email: z.string().email("Invalid email format"),
+    permissions: z.string().optional().nullable(),
+});
 
 export async function POST(req: Request) {
     try {
@@ -28,11 +34,22 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "No WHMCS client ID found" }, { status: 400 });
         }
 
-        const { email, permissions } = await req.json();
-
-        if (!email) {
-            return NextResponse.json({ error: "Email is required" }, { status: 400 });
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
         }
+
+        const parsed = inviteUserSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid input", details: parsed.error.flatten() },
+                { status: 400 }
+            );
+        }
+
+        const { email, permissions } = parsed.data;
 
         // ── 1. Send invite via WHMCS ─────────────────────────────────────────
         const result = await callWhmcsApi("CreateClientInvite", {

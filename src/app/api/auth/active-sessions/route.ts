@@ -4,6 +4,11 @@ import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { z } from "zod";
+
+const deleteSessionSchema = z.object({
+    sessionId: z.string().uuid("Invalid session ID format"),
+});
 
 export async function GET(req: Request) {
     try {
@@ -28,7 +33,7 @@ export async function GET(req: Request) {
                 .createHash("sha256")
                 .update(refreshToken)
                 .digest("hex");
-            
+
             const currentSession = await db.session.findFirst({
                 where: { refreshHash: hash }
             });
@@ -68,14 +73,24 @@ export async function DELETE(req: Request) {
         const { searchParams } = new URL(req.url);
         const sessionId = searchParams.get("sessionId");
 
-        if (!sessionId) {
-            return NextResponse.json({ error: "Session ID is required" }, { status: 400 });
+        const parsed = deleteSessionSchema.safeParse({ sessionId });
+
+        if (!parsed.success) {
+            return NextResponse.json(
+                {
+                    error: "Invalid session ID",
+                    details: parsed.error.flatten()
+                },
+                { status: 400 }
+            );
         }
+
+        const { sessionId: validatedSessionId } = parsed.data;
 
         // Make sure session belongs to the current user
         const session = await db.session.findFirst({
             where: {
-                id: sessionId,
+                id: validatedSessionId,
                 userId: user.id
             }
         });
@@ -94,7 +109,7 @@ export async function DELETE(req: Request) {
                 .createHash("sha256")
                 .update(refreshToken)
                 .digest("hex");
-            
+
             if (session.refreshHash === hash) {
                 isCurrent = true;
             }
@@ -102,7 +117,9 @@ export async function DELETE(req: Request) {
 
         // Delete session from DB
         await db.session.delete({
-            where: { id: sessionId }
+            where: {
+                id: validatedSessionId
+            }
         });
 
         const response = NextResponse.json({ success: true, isCurrent });

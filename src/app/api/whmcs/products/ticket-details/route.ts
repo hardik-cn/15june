@@ -3,6 +3,11 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { getWhmcsProductsDetails } from "@/lib/whmcs/services/getProducts";
+import { z } from "zod";
+
+const ticketDetailsSchema = z.object({
+    serviceid: z.string().min(1, "serviceid is required"),
+});
 
 export async function GET(req: Request) {
     try {
@@ -16,15 +21,17 @@ export async function GET(req: Request) {
         }
 
         const { searchParams } = new URL(req.url);
+        const serviceidParam = searchParams.get("serviceid");
 
-        const serviceid = searchParams.get("serviceid");
-
-        if (!serviceid) {
+        const parsed = ticketDetailsSchema.safeParse({ serviceid: serviceidParam });
+        if (!parsed.success) {
             return NextResponse.json(
                 { error: "serviceid is required" },
                 { status: 400 }
             );
         }
+
+        const { serviceid } = parsed.data;
 
         const services = await getWhmcsProductsDetails({
             clientid: String(user.whmcsClientId),

@@ -75,11 +75,6 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        console.log("DigiLocker verification created:", {
-            userId: user.id,
-            verificationId: verificationResult.verification_id,
-        });
-
         return NextResponse.json({
             success: true,
             url: verificationResult.url,
@@ -88,8 +83,6 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: any) {
-
-        console.error("DigiLocker initiate API error:", error);
 
         return NextResponse.json(
             {

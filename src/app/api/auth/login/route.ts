@@ -11,35 +11,27 @@ import { createAccessToken, createRefreshToken } from "@/lib/auth/tokens";
 import { detectDevice } from "@/lib/auth/device";
 import { sendTemplateEmail } from "@/lib/emails/sendTemplateEmail";
 import { logUserActivityFromRequest } from "@/lib/userActivityLog";
-
-import {
-    checkLoginRateLimit,
-    recordFailedLogin,
-    clearLoginAttempts
-} from "@/lib/security/loginRateLimit";
+import { getLoginLocation } from "@/lib/security/getLocation";
+import { countryCodes } from "@/lib/countries";
+import { checkLoginRateLimit, recordFailedLogin, clearLoginAttempts } from "@/lib/security/loginRateLimit";
 
 export async function POST(req: Request) {
 
     try {
 
         const ip =
-            req.headers.get("x-forwarded-for")?.split(",")[0] ||
+            req.headers.get("cf-connecting-ip") ||
+            req.headers.get("x-real-ip") ||
+            req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
             "unknown";
-
-        const userAgent =
-            req.headers.get("user-agent") || "unknown";
-
-        const language =
-            req.headers.get("accept-language") || "";
+        const userAgent = req.headers.get("user-agent") || "unknown";
+        const language = req.headers.get("accept-language") || "";
 
         // =============================
         // DEVICE FINGERPRINT
         // =============================
 
-        const deviceFingerprint = crypto
-            .createHash("sha256")
-            .update(`${ip}:${userAgent}:${language}`)
-            .digest("hex");
+        const deviceFingerprint = crypto.createHash("sha256").update(`${ip}:${userAgent}:${language}`).digest("hex");
 
         // =============================
         // VALIDATION
@@ -106,29 +98,7 @@ export async function POST(req: Request) {
                 where: { email }
             });
 
-            let dialCode = "";
-
-            switch (whmcsUser.countryCode) {
-                case "IN":
-                    dialCode = "+91";
-                    break;
-                case "US":
-                case "CA":
-                    dialCode = "+1";
-                    break;
-                case "GB":
-                    dialCode = "+44";
-                    break;
-                case "AE":
-                    dialCode = "+971";
-                    break;
-                case "AU":
-                    dialCode = "+61";
-                    break;
-                case "SG":
-                    dialCode = "+65";
-                    break;
-            }
+            const dialCode = countryCodes.find(country => country.iso === whmcsUser.countryCode)?.code || "+91";
 
             if (!user) {
 
@@ -335,13 +305,14 @@ export async function POST(req: Request) {
             }
         });
 
+        const loginLocation = await getLoginLocation(ip);
 
         await sendTemplateEmail({
             templateSlug: "login-alert",
             to: user.email,
             variables: {
                 first_name: user.firstName,
-                login_location: "India",
+                login_location: loginLocation,
                 device,
                 user_agent: userAgent,
                 ip_address: ip,

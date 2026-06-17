@@ -1,8 +1,12 @@
-// src/app/api/whmcs/tickets/by-tid/[tid]/route.ts
-
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { callWhmcsApi } from "@/lib/whmcs";
+import { z } from "zod";
+
+const getTicketByTidSchema = z.object({
+    tid: z.string().min(1, "Ticket number is required"),
+    repliessort: z.enum(["ASC", "DESC"]).default("ASC"),
+});
 
 export async function GET(
     req: Request,
@@ -47,19 +51,25 @@ export async function GET(
             return fields;
         }
 
-        const { tid } = await params;
+        const { tid: routeTid } = await params;
 
         const { searchParams } = new URL(req.url);
+        const repliessortParam = searchParams.get("repliessort") || undefined;
 
-        const repliessort =
-            searchParams.get("repliessort") || "ASC";
 
-        if (!tid) {
+        const parsed = getTicketByTidSchema.safeParse({
+            tid: routeTid,
+            repliessort: repliessortParam,
+        });
+
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Ticket number is required" },
+                { error: "Invalid parameters", details: parsed.error.flatten() },
                 { status: 400 }
             );
         }
+
+        const { tid, repliessort } = parsed.data;
 
         // =========================
         // Get Ticket

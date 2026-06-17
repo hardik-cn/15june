@@ -2,6 +2,15 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { openWhmcsTicket } from "@/lib/whmcs/support/openTicket";
+import { z } from "zod";
+
+const openTicketSchema = z.object({
+    deptid: z.string().min(1, "Department is required"),
+    subject: z.string().trim().min(1, "Subject is required"),
+    message: z.string().trim().min(1, "Message is required"),
+    priority: z.string().default("Medium"),
+    serviceid: z.string().min(1, "Service is required"),
+});
 
 function phpSerialize(obj: Record<string, any>): string {
     const entries = Object.entries(obj);
@@ -43,11 +52,11 @@ export async function POST(req: Request) {
 
         const formData = await req.formData();
 
-        const deptid = formData.get("deptid")?.toString();
-        const subject = formData.get("subject")?.toString();
-        const message = formData.get("message")?.toString();
-        const priority = formData.get("priority")?.toString() || "Medium";
-        const serviceid = formData.get("serviceid")?.toString();
+        const rawDeptId = formData.get("deptid")?.toString();
+        const rawSubject = formData.get("subject")?.toString();
+        const rawMessage = formData.get("message")?.toString();
+        const rawPriority = formData.get("priority")?.toString() || "Medium";
+        const rawServiceId = formData.get("serviceid")?.toString();
 
         // ---------- Service Config Options ----------
         const serviceConfigOptionsRaw = formData.get("serviceConfigOptions")?.toString();
@@ -59,21 +68,30 @@ export async function POST(req: Request) {
         const customfieldsData = customfieldsRaw ? JSON.parse(customfieldsRaw) : {};
         const customFieldDefinitions = customFieldDefinitionsRaw ? JSON.parse(customFieldDefinitionsRaw) : [];
 
-        // Validate required fields
-        if (!deptid) {
-            return NextResponse.json({ error: "Department is required" }, { status: 400 });
+        // Validate required fields with Zod
+        const parsed = openTicketSchema.safeParse({
+            deptid: rawDeptId,
+            subject: rawSubject,
+            message: rawMessage,
+            priority: rawPriority,
+            serviceid: rawServiceId,
+        });
+
+
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.issues[0].message },
+                { status: 400 }
+            );
         }
 
-        if (!serviceid) {
-            return NextResponse.json({ error: "Service is required" }, { status: 400 });
-        }
-
-        if (!subject || !subject.trim()) {
-            return NextResponse.json({ error: "Subject is required" }, { status: 400 });
-        }
-        if (!message || !message.trim()) {
-            return NextResponse.json({ error: "Message is required" }, { status: 400 });
-        }
+        const {
+            deptid,
+            subject,
+            message,
+            priority,
+            serviceid,
+        } = parsed.data;
 
         for (const field of customFieldDefinitions) {
             const isRequired = field.required === "on";
@@ -136,10 +154,6 @@ export async function POST(req: Request) {
         const serialized = phpSerialize(formattedCustomFields);
         const customfieldsBase64 = Buffer.from(serialized).toString("base64");
 
-        // console.log("Formatted:", formattedCustomFields);
-        // console.log("Serialized:", serialized);
-        // console.log("Base64:", customfieldsBase64);
-
         let formattedMessage = message.trim();
 
         // ---------- Custom Fields ----------
@@ -165,8 +179,6 @@ export async function POST(req: Request) {
             }
         }
 
-        console.log("FINAL MESSAGE:", formattedMessage);
-
         const data = await openWhmcsTicket({
             deptid: Number(deptid),
             subject: subject.trim(),
@@ -178,9 +190,6 @@ export async function POST(req: Request) {
             attachments: attachmentsBase64,
             customfields: customfieldsBase64,
         });
-
-
-        console.log("WHMCS RAW RESPONSE:", data);
 
         if (data.result !== "success") {
             return NextResponse.json(

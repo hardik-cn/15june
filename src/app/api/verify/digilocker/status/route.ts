@@ -58,13 +58,7 @@ export async function GET(req: NextRequest) {
         ─────────────────────────────────────
         */
 
-        const statusResult =
-            await cashfreeClient.getDigiLockerStatus(verificationId);
-
-        console.log("DigiLocker status result:", {
-            verificationId,
-            status: statusResult.status,
-        });
+        const statusResult = await cashfreeClient.getDigiLockerStatus(verificationId);
 
         // Still pending
         if (

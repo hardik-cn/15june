@@ -82,7 +82,9 @@ export default function ServiceDetailsPage() {
   const diskOffset = CIRC - (diskPercent / 100) * CIRC;
   const bwOffset = CIRC - (bwPercent / 100) * CIRC;
 
-  const controlPanel = service.configOptions?.find((option: any) =>
+  const configOptions = service?.configOptions || [];
+
+  const controlPanel = configOptions.find((option: any) =>
     option.optionname?.toLowerCase().includes("control panel")
   );
 

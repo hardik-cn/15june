@@ -2,10 +2,30 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { callWhmcsApi } from "@/lib/whmcs";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { z } from "zod";
+
+const deleteUserSchema = z.object({
+    userId: z.union([z.string(), z.number()]).transform(val => String(val)),
+});
 
 export async function POST(req: Request) {
     try {
-        const { userId } = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+        }
+
+        const parsed = deleteUserSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid input", details: parsed.error.flatten() },
+                { status: 400 }
+            );
+        }
+
+        const { userId } = parsed.data;
 
         const user = await getUserFromRequest(req);
 

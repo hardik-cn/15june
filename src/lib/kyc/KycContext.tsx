@@ -1,13 +1,6 @@
 // src/lib/kyc/KycContext.tsx
 "use client";
-
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect,
-    useCallback,
-} from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { apiFetch } from "@/lib/apiFetch";
 
@@ -20,6 +13,7 @@ type OnboardingData = {
     onboardingStatus: string | null;
     onboardingUuid: string | null;
     kycStatus: string | null;
+    hasKycProfile: boolean;
 };
 
 interface KycContextType {
@@ -32,6 +26,7 @@ interface KycContextType {
     onboardingStatus: string | null;
     onboardingUuid: string | null;
     kycStatus: string | null;
+    hasKycProfile: boolean;
     loading: boolean;
     refreshKycStatus: () => Promise<void>;
 }
@@ -51,6 +46,7 @@ export function KycProvider({
         onboardingStatus: null,
         onboardingUuid: null,
         kycStatus: null,
+        hasKycProfile: false,
     });
     const [loading, setLoading] = useState(true);
 
@@ -97,6 +93,7 @@ export function KycProvider({
                 onboardingStatus: onboardingData.onboardingStatus,
                 onboardingUuid: onboardingData.onboardingUuid,
                 kycStatus: onboardingData.kycStatus,
+                hasKycProfile: onboardingData.hasKycProfile,
                 loading,
                 refreshKycStatus: async () => {
                     setIsDismissed(false);

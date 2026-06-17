@@ -3,6 +3,12 @@ import { redis } from "@/lib/redis";
 import { NextResponse } from "next/server";
 import twilio from "twilio";
 import { clearPendingOtp } from "@/lib/security/otpRateLimit";
+import { z } from "zod";
+
+const phoneVerifySchema = z.object({
+    phone: z.string().min(1, "Phone is required"),
+    otp: z.string().min(1, "OTP is required"),
+});
 
 const client = twilio(
     process.env.TWILIO_ACCOUNT_SID!,
@@ -11,14 +17,25 @@ const client = twilio(
 
 export async function POST(req: Request) {
     try {
-        const { phone, otp } = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json(
+                { error: "Invalid JSON payload" },
+                { status: 400 }
+            );
+        }
 
-        if (!phone || !otp) {
+        const parsed = phoneVerifySchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
                 { error: "Phone and OTP required" },
                 { status: 400 }
             );
         }
+
+        const { phone, otp } = parsed.data;
 
         const verificationCheck = await client.verify.v2
             .services(process.env.TWILIO_VERIFY_SERVICE_SID!)

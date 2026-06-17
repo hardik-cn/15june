@@ -1,5 +1,4 @@
 // src/app/api/otp/email/verify/route.ts
-import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 import { hashOtp, getTimeWindow } from "@/lib/security/otpGenerate";
@@ -7,7 +6,7 @@ import { clearPendingEmailOtp } from "@/lib/security/emailOtpRateLimit";
 
 export async function POST(req: Request) {
     try {
-        const { email, otp, purpose = "register" } = await req.json();
+        const { email, otp } = await req.json();
 
         if (!email || !otp) {
             return NextResponse.json(
@@ -16,8 +15,8 @@ export async function POST(req: Request) {
             );
         }
 
-        const key = `otp:email:${purpose}:${email}`;
-        const attemptsKey = `otp:email:attempts:${purpose}:${email}`;
+        const key = `otp:email:${email}`;
+        const attemptsKey = `otp:email:attempts:${email}`;
 
         const stored = await redis.get(key);
 
@@ -30,7 +29,7 @@ export async function POST(req: Request) {
 
         const { hash, window } = JSON.parse(stored);
 
-        //  Check attempt limit FIRST
+        // 🔐 Check attempt limit FIRST
         const attempts = Number(await redis.get(attemptsKey) || 0);
 
         if (attempts >= 5) {
@@ -43,7 +42,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check time window
+        // 🔐 Check time window
         const currentWindow = getTimeWindow();
 
         if (currentWindow !== window && currentWindow !== window + 1) {
@@ -53,15 +52,10 @@ export async function POST(req: Request) {
             );
         }
 
-        // Validate OTP
+        // 🔐 Validate OTP
         const incomingHash = hashOtp(otp, email, window);
 
-        const valid = crypto.timingSafeEqual(
-            Buffer.from(incomingHash),
-            Buffer.from(hash)
-        );
-
-        if (!valid) {
+        if (incomingHash !== hash) {
             await redis.incr(attemptsKey);
 
             return NextResponse.json(
@@ -70,7 +64,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // SUCCESS
+        // ✅ SUCCESS
         await redis.del(key);
         await redis.del(attemptsKey);
         await clearPendingEmailOtp(email);

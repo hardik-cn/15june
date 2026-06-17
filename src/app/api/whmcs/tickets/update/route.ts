@@ -1,18 +1,34 @@
 // src/app/api/whmcs/tickets/update/route.ts
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { z } from "zod";
+
+const updateTicketSchema = z.object({
+    ticketid: z.union([z.string(), z.number()]).transform(val => String(val)),
+    cc: z.string().optional(),
+});
 
 export async function POST(req: Request) {
     try {
         const user = await getUserFromRequest(req);
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const body = await req.json();
-        const { ticketid, cc } = body;
-
-        if (!ticketid) {
-            return NextResponse.json({ error: "Ticket ID is required" }, { status: 400 });
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
         }
+
+        const parsed = updateTicketSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Ticket ID is required", details: parsed.error.flatten() },
+                { status: 400 }
+            );
+        }
+
+        const { ticketid, cc } = parsed.data;
 
         const params = new URLSearchParams({
             action: "UpdateTicket",

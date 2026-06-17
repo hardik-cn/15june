@@ -5,6 +5,11 @@ import { db } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { getWhmcsProductsDetails } from "@/lib/whmcs/services/getProducts";
 import { getServiceIdFromUuid } from "@/lib/services/getServiceByUuid";
+import { z } from "zod";
+
+const productDetailsUuidSchema = z.object({
+    uuid: z.string().uuid("Invalid UUID format"),
+});
 
 export async function GET(
     req: NextRequest,
@@ -12,6 +17,11 @@ export async function GET(
 ) {
     try {
         const { uuid } = await context.params;
+
+        const parsed = productDetailsUuidSchema.safeParse({ uuid });
+        if (!parsed.success) {
+            return NextResponse.json({ error: "Invalid service ID" }, { status: 400 });
+        }
 
         const user = await getUserFromRequest(req);
 

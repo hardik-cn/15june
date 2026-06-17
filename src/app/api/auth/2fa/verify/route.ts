@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 
 import speakeasy from "speakeasy";
+import { z } from "zod";
+
+const verify2FASchema = z.object({
+    token: z.string().min(1, "Token is required"),
+});
 
 export async function POST(req: Request) {
 
@@ -18,9 +23,25 @@ export async function POST(req: Request) {
             );
         }
 
-        const body = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json(
+                { error: "Invalid JSON payload" },
+                { status: 400 }
+            );
+        }
 
-        const { token } = body;
+        const parsed = verify2FASchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid input", details: parsed.error.flatten() },
+                { status: 400 }
+            );
+        }
+
+        const { token } = parsed.data;
 
         const twoFactor = await db.twoFactorMethod.findFirst({
             where: {

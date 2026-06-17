@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { callWhmcsApi } from "@/lib/whmcs";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { z } from "zod";
+
+const cancelInviteSchema = z.object({
+    invitationId: z.union([z.string(), z.number()]).optional(),
+    email: z.string().email("Invalid email format"),
+});
 
 export async function POST(req: Request) {
     try {
@@ -25,7 +31,22 @@ export async function POST(req: Request) {
 
         const clientId = fullUser?.onboarding?.whmcsClientId;
 
-        const { invitationId, email } = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+        }
+
+        const parsed = cancelInviteSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid input", details: parsed.error.flatten() },
+                { status: 400 }
+            );
+        }
+
+        const { invitationId, email } = parsed.data;
 
         // ── 1. Try to cancel in WHMCS (best-effort, may not have an active invite record) ──
         if (invitationId) {

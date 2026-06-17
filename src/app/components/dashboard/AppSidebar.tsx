@@ -106,7 +106,7 @@ function NavContent({
   isMobile = false,
 }: NavContentProps) {
   const pathname = usePathname();
-  const { openPopup, kycStatus, onboardingStatus, } = useKycPopup();
+  const { openPopup, kycStatus, onboardingStatus, hasKycProfile, loading } = useKycPopup();
 
   const lockedRoutes = [
     "/services",
@@ -126,37 +126,45 @@ function NavContent({
     url: string
   ) => {
 
-    const isLocked =
-      lockedRoutes.includes(url);
+    const isLocked = lockedRoutes.includes(url);
 
-    if (isLocked) {
-      const normalizedKycStatus = kycStatus?.toLowerCase().trim();
+    if (!isLocked) {
+      onNavClick?.();
+      return;
+    }
 
-      const onboardingCompleted = onboardingStatus === "completed";
+    // Wait until API response arrives
+    if (loading) {
+      e.preventDefault();
+      return;
+    }
 
-      const userFullyVerified = onboardingCompleted && normalizedKycStatus === "approved";
+    const normalizedKycStatus =
+      kycStatus?.toLowerCase().trim();
 
-      // still loading → allow middleware to decide
+    const onboardingCompleted =
+      onboardingStatus === "completed";
+
+    const userFullyVerified =
+      onboardingCompleted &&
+      (
+        normalizedKycStatus === "approved" ||
+        !hasKycProfile
+      );
+
+    if (!userFullyVerified) {
+      e.preventDefault();
+
       if (
-        onboardingStatus === null &&
-        kycStatus === null
+        hasKycProfile &&
+        normalizedKycStatus === "pending"
       ) {
-        e.preventDefault();
+        openPopup("review");
+      } else {
         openPopup("required");
-        return;
       }
 
-      if (!userFullyVerified) {
-        e.preventDefault();
-
-        if (normalizedKycStatus === "pending") {
-          openPopup("review");
-        } else {
-          openPopup("required");
-        }
-
-        return;
-      }
+      return;
     }
 
     onNavClick?.();

@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
             onboardingStatus: user.onboarding?.status ?? null,
             onboardingUuid: user.onboarding?.uuid ?? null,
             kycStatus: user.kycProfile?.status ?? null,
+            hasKycProfile: !!user.kycProfile,
         };
         return NextResponse.json(responsePayload);
 

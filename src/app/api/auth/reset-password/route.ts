@@ -4,6 +4,16 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { encrypt } from "@/lib/securePassword";
 import { logUserActivityFromRequest } from "@/lib/userActivityLog";
+import { z } from "zod";
+
+const resetPasswordGetSchema = z.object({
+    token: z.string().min(1, "Token is required"),
+});
+
+const resetPasswordPostSchema = z.object({
+    token: z.string().min(1, "Token is required"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
 /* =========================================
    GET — Validate Reset Token
@@ -13,15 +23,26 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const token = searchParams.get("token");
 
-        if (!token) {
+        const parsed = resetPasswordGetSchema.safeParse({ token });
+
+        if (!parsed.success) {
             return NextResponse.json(
-                { success: false },
-                { status: 400 }
+                {
+                    success: false,
+                    error: parsed.error.flatten(),
+                },
+                {
+                    status: 400,
+                }
             );
         }
 
+        const { token: validatedToken } = parsed.data;
+
         const reset = await db.passwordReset.findUnique({
-            where: { token },
+            where: {
+                token: validatedToken,
+            },
         });
 
         if (
@@ -56,21 +77,26 @@ export async function GET(req: Request) {
 ========================================= */
 export async function POST(req: Request) {
     try {
-        const { token, password } = await req.json();
-
-        if (!token || !password) {
+        let body;
+        try {
+            body = await req.json();
+        } catch {
             return NextResponse.json(
-                { error: "Invalid request" },
+                { error: "Invalid JSON payload" },
                 { status: 400 }
             );
         }
 
-        if (password.length < 8) {
+        const parsed = resetPasswordPostSchema.safeParse(body);
+
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Password must be at least 8 characters" },
+                { error: "Invalid request", details: parsed.error.flatten() },
                 { status: 400 }
             );
         }
+
+        const { token, password } = parsed.data;
 
         const reset = await db.passwordReset.findUnique({
             where: { token },

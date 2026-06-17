@@ -1,18 +1,37 @@
-// src/app/api/otp/email/route.ts
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 import { checkEmailLimits, checkPendingEmailOtp } from "@/lib/security/emailOtpRateLimit";
 import { checkEmailAbuse } from "@/lib/security/emailOtpGuard";
 import { generateOtp, hashOtp, getTimeWindow } from "@/lib/security/otpGenerate";
 import { sendEmailOtp } from "@/emails/sendEmailOtp";
+import { z } from "zod";
+
+const emailOtpSchema = z.object({
+    email: z.string().email("Invalid email format"),
+    purpose: z.string().default("register"),
+});
 
 export async function POST(req: Request) {
     try {
-        const { email, purpose = "register" } = await req.json();
-
-        if (!email) {
-            return NextResponse.json({ error: "Email required" }, { status: 400 });
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json(
+                { error: "Invalid JSON payload" },
+                { status: 400 }
+            );
         }
+
+        const parsed = emailOtpSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.issues[0].message },
+                { status: 400 }
+            );
+        }
+
+        const { email, purpose } = parsed.data;
 
         // Rate limit
         const limit = await checkEmailLimits(email);

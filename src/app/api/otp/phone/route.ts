@@ -5,6 +5,11 @@ import { redis } from "@/lib/redis";
 import { checkPhoneLimits, checkPendingOtp } from "@/lib/security/otpRateLimit";
 import { checkPrefixAbuse } from "@/lib/security/otpGuard";
 import { checkPhoneIntelligence } from "@/lib/security/phoneIntelligence";
+import { z } from "zod";
+
+const phoneOtpSchema = z.object({
+    phone: z.string().min(1, "Phone is required"),
+});
 
 const client = twilio(
     process.env.TWILIO_ACCOUNT_SID!,
@@ -13,14 +18,25 @@ const client = twilio(
 
 export async function POST(req: Request) {
     try {
-        const { phone } = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json(
+                { error: "Invalid JSON payload" },
+                { status: 400 }
+            );
+        }
 
-        if (!phone) {
+        const parsed = phoneOtpSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
                 { error: "Phone is required" },
                 { status: 400 }
             );
         }
+
+        const { phone } = parsed.data;
 
         // Phone Limits (3 per 10 min / 5 per day)
         const phoneLimit = await checkPhoneLimits(phone);

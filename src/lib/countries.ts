@@ -9,11 +9,7 @@ export interface CountryOption {
 }
 
 function isoToFlag(iso: string): string {
-    return iso
-        .toUpperCase()
-        .replace(/./g, char =>
-            String.fromCodePoint(127397 + char.charCodeAt(0))
-        );
+    return iso.toUpperCase().replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt(0)));
 }
 
 export const countryCodes: CountryOption[] = countries.all
@@ -27,6 +23,19 @@ export const countryCodes: CountryOption[] = countries.all
     .filter(country => country.code)
     .sort((a, b) => a.country.localeCompare(b.country));
 
-export const countryList = countries.all
-    .map((country) => country.name)
-    .sort((a, b) => a.localeCompare(b));
+export const countryList = countries.all.map((country) => country.name).sort((a, b) => a.localeCompare(b));
+
+export function dialCodeToISO(
+    dialCode?: string | null
+): string {
+    if (!dialCode) {
+        return "IN";
+    }
+
+    const match = countryCodes.find(
+        country => country.code === dialCode
+    );
+
+    return match?.iso ?? "IN";
+
+}

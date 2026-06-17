@@ -6,9 +6,7 @@ import { Button } from "@/app/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, } from "@/app/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { apiFetch } from "@/lib/apiFetch";
-import { clearAccessToken } from "@/lib/auth/tokenStore";
 import { useKycPopup } from "@/lib/kyc/KycContext";
 import { logout } from "@/lib/auth/logout";
 
@@ -21,7 +19,7 @@ type User = {
 export function UserDropdown() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const { openPopup, kycStatus, onboardingStatus } = useKycPopup();
+  const { openPopup, kycStatus, onboardingStatus, hasKycProfile, loading } = useKycPopup();
 
   const lockedRoutes = [
     "/profile",
@@ -33,32 +31,35 @@ export function UserDropdown() {
 
   const handleProtectedRoute = (url: string) => {
 
-    const isLocked =
-      lockedRoutes.includes(url);
+    if (loading) {
+      return;
+    }
 
-    if (isLocked) {
-      const normalizedKycStatus = kycStatus?.toLowerCase().trim();
-      const onboardingCompleted = onboardingStatus === "completed";
+    const onboardingCompleted =
+      onboardingStatus === "completed";
 
-      const userFullyVerified = onboardingCompleted && normalizedKycStatus === "approved";
+    const normalizedKycStatus =
+      kycStatus?.toLowerCase().trim();
 
-      // still loading → let middleware decide
+    const userFullyVerified =
+      onboardingCompleted &&
+      (
+        normalizedKycStatus === "approved" ||
+        !hasKycProfile
+      );
+
+    if (!userFullyVerified) {
+
       if (
-        onboardingStatus === null &&
-        kycStatus === null
+        hasKycProfile &&
+        normalizedKycStatus === "pending"
       ) {
+        openPopup("review");
+      } else {
         openPopup("required");
-        return;
       }
 
-      if (!userFullyVerified) {
-        if (normalizedKycStatus === "pending") {
-          openPopup("review");
-        } else {
-          openPopup("required");
-        }
-        return;
-      }
+      return;
     }
 
     router.push(url);

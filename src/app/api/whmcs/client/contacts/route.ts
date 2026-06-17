@@ -5,38 +5,39 @@ import { getWhmcsContacts } from "@/lib/whmcs/client/contacts/getContacts";
 import { addWhmcsContact } from "@/lib/whmcs/client/contacts/addContact";
 import { updateWhmcsContact } from "@/lib/whmcs/client/contacts/updateContact";
 import { deleteWhmcsContact } from "@/lib/whmcs/client/contacts/deleteContact";
+import { z } from "zod";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared validation helper
-// ─────────────────────────────────────────────────────────────────────────────
-function validateContactFields(fields: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phone?: string;
-}): string | null {
-    const { firstName, lastName, email, phone } = fields;
+const contactFieldsSchema = z.object({
+    firstName: z.string().trim().min(1, "First name is required.").min(2, "First name must be at least 2 characters."),
+    lastName: z.string().trim().min(1, "Last name is required.").min(2, "Last name must be at least 2 characters."),
+    email: z.string().trim().min(1, "Email address is required.").email("Please enter a valid email address."),
+    phone: z.string().optional().nullable().refine((val) => {
+        if (!val || !val.trim()) return true;
+        const digitsOnly = val.trim().replace(/^\+\d{1,4}\s*/, "");
+        return /^\d{6,15}$/.test(digitsOnly);
+    }, { message: "Phone number must be 6–15 digits." }),
+    companyName: z.string().optional().nullable(),
+    address1: z.string().optional().nullable(),
+    address2: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
+    state: z.string().optional().nullable(),
+    postcode: z.string().optional().nullable(),
+    country: z.string().optional().nullable(),
+    generalEmails: z.any().optional(),
+    invoiceEmails: z.any().optional(),
+    supportEmails: z.any().optional(),
+    productEmails: z.any().optional(),
+    domainEmails: z.any().optional(),
+    affiliateEmails: z.any().optional(),
+});
 
-    if (!firstName?.trim()) return "First name is required.";
-    if (firstName.trim().length < 2) return "First name must be at least 2 characters.";
+const putContactSchema = contactFieldsSchema.extend({
+    contactId: z.union([z.string(), z.number()]).transform((val) => Number(val)),
+});
 
-    if (!lastName?.trim()) return "Last name is required.";
-    if (lastName.trim().length < 2) return "Last name must be at least 2 characters.";
-
-    if (!email?.trim()) return "Email address is required.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return "Please enter a valid email address.";
-
-    // Phone is optional, but if provided must be digits (with optional leading country code)
-    if (phone && phone.trim()) {
-        // Strip any leading country code (e.g. "+91 ") before validating digit length
-        const digitsOnly = phone.trim().replace(/^\+\d{1,4}\s*/, "");
-        if (digitsOnly && !/^\d{6,15}$/.test(digitsOnly)) {
-            return "Phone number must be 6–15 digits.";
-        }
-    }
-
-    return null;
-}
+const deleteContactSchema = z.object({
+    contactId: z.union([z.string(), z.number()]).transform((val) => Number(val)),
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET — fetch all contacts for the authenticated user
@@ -80,7 +81,20 @@ export async function POST(req: Request) {
             );
         }
 
-        const body = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+        }
+
+        const parsed = contactFieldsSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.issues[0].message },
+                { status: 400 }
+            );
+        }
 
         const {
             firstName,
@@ -100,30 +114,21 @@ export async function POST(req: Request) {
             productEmails,
             domainEmails,
             affiliateEmails,
-        } = body;
-
-        // Backend validation
-        const validationError = validateContactFields({ firstName, lastName, email, phone });
-        if (validationError) {
-            return NextResponse.json(
-                { error: validationError },
-                { status: 400 }
-            );
-        }
+        } = parsed.data;
 
         const result = await addWhmcsContact({
             clientId: user.whmcsClientId,
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             email: email.trim(),
-            companyName,
-            address1,
-            address2,
-            city,
-            state,
-            postcode,
-            country,
-            phone,
+            companyName: companyName ?? undefined,
+            address1: address1 ?? undefined,
+            address2: address2 ?? undefined,
+            city: city ?? undefined,
+            state: state ?? undefined,
+            postcode: postcode ?? undefined,
+            country: country ?? undefined,
+            phone: phone ?? undefined,
             generalEmails,
             invoiceEmails,
             supportEmails,
@@ -161,7 +166,20 @@ export async function PUT(req: Request) {
             );
         }
 
-        const body = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+        }
+
+        const parsed = putContactSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.issues[0].message },
+                { status: 400 }
+            );
+        }
 
         const {
             contactId,
@@ -182,23 +200,7 @@ export async function PUT(req: Request) {
             productEmails,
             domainEmails,
             affiliateEmails,
-        } = body;
-
-        if (!contactId) {
-            return NextResponse.json(
-                { error: "contactId is required." },
-                { status: 400 }
-            );
-        }
-
-        // Backend validation
-        const validationError = validateContactFields({ firstName, lastName, email, phone });
-        if (validationError) {
-            return NextResponse.json(
-                { error: validationError },
-                { status: 400 }
-            );
-        }
+        } = parsed.data;
 
         // Verify the contact belongs to this client
         const existingContacts = await getWhmcsContacts(user.whmcsClientId);
@@ -218,14 +220,16 @@ export async function PUT(req: Request) {
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             email: email.trim(),
-            companyName,
-            address1,
-            address2,
-            city,
-            state,
-            postcode,
-            country,
-            phone,
+
+            companyName: companyName ?? undefined,
+            address1: address1 ?? undefined,
+            address2: address2 ?? undefined,
+            city: city ?? undefined,
+            state: state ?? undefined,
+            postcode: postcode ?? undefined,
+            country: country ?? undefined,
+            phone: phone ?? undefined,
+
             generalEmails,
             invoiceEmails,
             supportEmails,
@@ -260,15 +264,22 @@ export async function DELETE(req: Request) {
             );
         }
 
-        const body = await req.json();
-        const { contactId } = body;
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+        }
 
-        if (!contactId) {
+        const parsed = deleteContactSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "contactId is required" },
+                { error: parsed.error.issues[0].message },
                 { status: 400 }
             );
         }
+
+        const { contactId } = parsed.data;
 
         const contacts = await getWhmcsContacts(user.whmcsClientId);
         const exists = contacts.some((c: any) => c.id === Number(contactId));

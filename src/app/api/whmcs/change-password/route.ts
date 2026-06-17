@@ -7,11 +7,12 @@ import { encrypt } from "@/lib/securePassword";
 import bcrypt from "bcryptjs";
 import { getWhmcsUserId } from "@/lib/whmcs/changePassword";
 import { logUserActivityFromRequest } from "@/lib/userActivityLog";
+import { z } from "zod";
 
-// Minimum password strength: 8+ chars
-function isStrongPassword(password: string): boolean {
-    return password.length >= 8;
-}
+const changePasswordSchema = z.object({
+    existingPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+});
 
 export async function POST(req: Request) {
     try {
@@ -30,29 +31,22 @@ export async function POST(req: Request) {
         }
 
         // ── 2. Parse & validate body ─────────────────────────────────────────
-        let body: { existingPassword?: string; newPassword?: string };
+        let body;
         try {
             body = await req.json();
         } catch {
             return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
         }
 
-        const { existingPassword, newPassword } = body;
-
-        if (!existingPassword || !newPassword) {
-            return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-        }
-
-        if (typeof existingPassword !== "string" || typeof newPassword !== "string") {
-            return NextResponse.json({ error: "Invalid field types" }, { status: 400 });
-        }
-
-        if (!isStrongPassword(newPassword)) {
+        const parsed = changePasswordSchema.safeParse(body);
+        if (!parsed.success) {
             return NextResponse.json(
-                { error: "Password must be at least 8 characters" },
+                { error: "Invalid input", details: parsed.error.flatten() },
                 { status: 400 }
             );
         }
+
+        const { existingPassword, newPassword } = parsed.data;
 
         // ── 3. Verify passwordHash exists ─────────────────────────────────────
         if (!sessionUser.passwordHash) {

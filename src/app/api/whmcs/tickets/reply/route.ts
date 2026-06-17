@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { z } from "zod";
+
+const replyTicketSchema = z.object({
+    ticketid: z.string().min(1, "Ticket ID is required"),
+    message: z.string().min(1, "Message is required"),
+});
 
 export async function POST(req: Request) {
     try {
@@ -7,13 +13,23 @@ export async function POST(req: Request) {
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const formData = await req.formData();
-        const ticketid = formData.get("ticketid") as string;
-        const message = formData.get("message") as string;
+        const ticketidRaw = formData.get("ticketid") as string;
+        const messageRaw = formData.get("message") as string;
         const clientid = user.whmcsClientId;
 
-        if (!ticketid || !message) {
-            return NextResponse.json({ error: "Ticket ID and message are required" }, { status: 400 });
+        const parsed = replyTicketSchema.safeParse({
+            ticketid: ticketidRaw,
+            message: messageRaw,
+        });
+
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: parsed.error.issues[0].message },
+                { status: 400 }
+            );
         }
+
+        const { ticketid, message } = parsed.data;
 
         const files = formData.getAll("attachments") as File[];
         

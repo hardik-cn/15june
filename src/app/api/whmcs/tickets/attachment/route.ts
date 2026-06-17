@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { z } from "zod";
+
+const ticketAttachmentSchema = z.object({
+    relatedid: z.string().min(1, "relatedid is required"),
+    type: z.enum(["ticket", "reply", "note"]),
+    index: z.coerce.number().int().nonnegative(),
+});
 
 export async function GET(req: Request) {
     try {
@@ -8,20 +15,31 @@ export async function GET(req: Request) {
 
         const { searchParams } = new URL(req.url);
         const relatedid = searchParams.get("relatedid");
-        const type = searchParams.get("type"); // ticket, reply, note
+        const type = searchParams.get("type");
         const index = searchParams.get("index");
 
-        if (!relatedid || !type || index === null) {
-            return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+        const parsed = ticketAttachmentSchema.safeParse({
+            relatedid,
+            type,
+            index: index !== null ? index : undefined,
+        });
+
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid parameters", details: parsed.error.flatten() },
+                { status: 400 }
+            );
         }
+
+        const data = parsed.data;
 
         const params = new URLSearchParams({
             action: "GetTicketAttachment",
             identifier: process.env.WHMCS_API_IDENTIFIER!,
             secret: process.env.WHMCS_API_SECRET!,
-            relatedid,
-            type,
-            index,
+            relatedid: data.relatedid,
+            type: data.type,
+            index: String(data.index),
             responsetype: "json",
         });
 

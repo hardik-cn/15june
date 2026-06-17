@@ -2,6 +2,12 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { callWhmcsApi } from "@/lib/whmcs";
+import { z } from "zod";
+
+const getTicketSchema = z.object({
+    ticketid: z.string().min(1, "Ticket ID is required"),
+    repliessort: z.enum(["ASC", "DESC"]).default("ASC"),
+});
 
 export async function GET(
     req: Request,
@@ -16,11 +22,21 @@ export async function GET(
 
         const { ticketid } = await context.params;
         const { searchParams } = new URL(req.url);
-        const repliessort = searchParams.get("repliessort") || "ASC";
+        const repliessortParam = searchParams.get("repliessort") || undefined;
 
-        if (!ticketid) {
-            return NextResponse.json({ error: "Ticket ID is required" }, { status: 400 });
+        const parsed = getTicketSchema.safeParse({
+            ticketid,
+            repliessort: repliessortParam,
+        });
+
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid parameters", details: parsed.error.flatten() },
+                { status: 400 }
+            );
         }
+
+        const { repliessort } = parsed.data;
 
         const data = await callWhmcsApi("GetTicket", {
             ticketid: ticketid,

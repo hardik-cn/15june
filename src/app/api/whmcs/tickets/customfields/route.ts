@@ -2,6 +2,11 @@
 
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { z } from "zod";
+
+const customFieldsSchema = z.object({
+    department_id: z.string().min(1, "Department ID required"),
+});
 
 export async function GET(req: Request) {
     try {
@@ -12,14 +17,18 @@ export async function GET(req: Request) {
         }
 
         const { searchParams } = new URL(req.url);
-        const departmentId = searchParams.get("department_id");
+        const parsed = customFieldsSchema.safeParse({
+            department_id: searchParams.get("department_id"),
+        });
 
-        if (!departmentId) {
+        if (!parsed.success) {
             return NextResponse.json(
                 { error: "Department ID required" },
                 { status: 400 }
             );
         }
+
+        const departmentId = parsed.data.department_id;
 
         // Call WHMCS addon API
         const res = await fetch(

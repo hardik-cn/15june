@@ -16,6 +16,8 @@ export async function middleware(req: NextRequest) {
         "/api/csrf",
         "/api/auth/login",
         "/api/auth/register",
+        "/api/otp/phone",
+        "/api/otp/email",
         "/api/auth/forgot-password",
         "/api/auth/reset-password",
         "/api/auth/refresh",
@@ -135,6 +137,7 @@ export async function middleware(req: NextRequest) {
         "/dashboard",
         "/account",
         "/billing",
+        "/change-password",
         "/orders",
         "/onboarding",
         "/user-management",
@@ -142,6 +145,8 @@ export async function middleware(req: NextRequest) {
         "/services",
         "/support",
         "/profile",
+        "/security-settings",
+        "/active-sessions"
     ];
 
     const isProtected = protectedPaths.some(path =>
@@ -215,5 +220,7 @@ export const config = {
         "/services/:path*",
         "/support/:path*",
         "/profile/:path*",
+        "/security-settings/:path*",
+        "/active-sessions/:path*"
     ],
 };

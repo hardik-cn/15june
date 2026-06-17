@@ -2,6 +2,11 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { callWhmcsApi } from "@/lib/whmcs";
+import { z } from "zod";
+
+const domainDetailsSchema = z.object({
+    domainId: z.string().min(1, "Domain ID required"),
+});
 
 export async function GET(req: Request) {
     try {
@@ -9,8 +14,14 @@ export async function GET(req: Request) {
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const { searchParams } = new URL(req.url);
-        const domainId = searchParams.get("id");
-        if (!domainId) return NextResponse.json({ error: "Domain ID required" }, { status: 400 });
+        const id = searchParams.get("id");
+
+        const parsed = domainDetailsSchema.safeParse({ domainId: id });
+        if (!parsed.success) {
+            return NextResponse.json({ error: "Domain ID required" }, { status: 400 });
+        }
+
+        const { domainId } = parsed.data;
 
         const result = await callWhmcsApi("GetClientsDomains", {
             domainid: domainId,

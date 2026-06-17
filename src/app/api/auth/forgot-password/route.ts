@@ -6,10 +6,33 @@ import { checkWhmcsClientExists } from "@/lib/whmcs/client/checkClientExists";
 // import { sendResetPasswordEmail } from "@/emails/sendResetPasswordEmail";
 import { sendTemplateEmail } from "@/lib/emails/sendTemplateEmail";
 import { logUserActivityFromRequest } from "@/lib/userActivityLog";
+import { z } from "zod";
+
+const forgotPasswordSchema = z.object({
+    email: z.string().email("Invalid email format"),
+});
 
 export async function POST(req: Request) {
     try {
-        const { email } = await req.json();
+        let body;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json(
+                { error: "Invalid JSON payload" },
+                { status: 400 }
+            );
+        }
+
+        const parsed = forgotPasswordSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid email address", details: parsed.error.flatten() },
+                { status: 400 }
+            );
+        }
+
+        const { email } = parsed.data;
 
         const client = await checkWhmcsClientExists(email);
 

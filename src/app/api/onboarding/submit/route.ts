@@ -8,6 +8,25 @@ import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { validateUploadFile, validateFileSignature } from "@/lib/validators/validateUpload";
 import { sendTemplateEmail } from "@/lib/emails/sendTemplateEmail";
 import { sendKycSlackNotification } from "@/lib/slack/sendKycSlackNotification";
+import { z } from "zod";
+
+const onboardingSubmitSchema = z.object({
+    accountType: z.string().min(1, "Account type is required"),
+    country: z.string().min(1, "Country is required"),
+    state: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
+    postalCode: z.string().optional().nullable(),
+    streetAddress: z.string().optional().nullable(),
+    companyName: z.string().optional().nullable(),
+    businessType: z.string().optional().nullable(),
+    gstVerified: z.any().optional(),
+    cinVerified: z.any().optional(),
+    aadharVerified: z.any().optional(),
+    billingCurrency: z.string().optional().nullable(),
+    addressType: z.any().optional(),
+    internationalVerified: z.any().optional(),
+    representativeName: z.string().optional().nullable(),
+});
 
 export const runtime = "nodejs";
 
@@ -76,6 +95,14 @@ export async function POST(req: Request) {
             body = await req.json();
         }
 
+        const parsed = onboardingSubmitSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid input", details: parsed.error.flatten() },
+                { status: 400 }
+            );
+        }
+
         const {
             accountType,
             country,
@@ -92,14 +119,7 @@ export async function POST(req: Request) {
             addressType,
             internationalVerified,
             representativeName,
-        } = body;
-
-        if (!accountType || !country) {
-            return NextResponse.json(
-                { error: "Missing required KYC fields" },
-                { status: 400 }
-            );
-        }
+        } = parsed.data;
 
         let panNumber: string | null = null;
         let cinNumber: string | null = null;
