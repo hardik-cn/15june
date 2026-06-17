@@ -1,3 +1,5 @@
+// src/app/api/admin/staff/delete/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
@@ -6,24 +8,34 @@ import { parseDeviceInfo } from "@/lib/admin/device";
 
 export async function DELETE(req: Request) {
     try {
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const adminAuth = await getAdminFromRequest(req);
 
         if (!adminAuth) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // =============================
+        // STEP 2: PARSE REQUEST DATA
+        // =============================
         const body = await req.json();
         const { id } = body;
 
+        // =============================
+        // STEP 3: VALIDATE REQUEST DATA
+        // =============================
         if (!id) {
             return NextResponse.json({ error: "Admin ID is required" }, { status: 400 });
         }
-
         if (adminAuth.id === parseInt(id)) {
             return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 });
         }
 
-        // Check if admin exists
+        // =============================
+        // STEP 4: FETCH TARGET ADMIN
+        // =============================
         const existingAdmin = await db.superAdmin.findUnique({
             where: { id: parseInt(id) }
         });
@@ -32,21 +44,32 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: "Admin not found" }, { status: 404 });
         }
 
-        // Delete Admin
+        // =============================
+        // STEP 5: SOFT DELETE ADMIN
+        // =============================
         await db.superAdmin.update({
             where: { id: parseInt(id) },
             data: {
                 LastStatus: existingAdmin.status,
                 status: 3,
+            },
+        });
+
+        // =============================
+        // STEP 6: FETCH ROLE DETAILS
+        // =============================
+        const existingRole = await db.adminRole.findUnique({
+            where: {
+                id: parseInt(existingAdmin.role.toString())
+            },
+            select: {
+                name: true
             }
         });
 
-        // get admin role name
-        const existingRole = await db.adminRole.findUnique({
-            where: { id: parseInt(existingAdmin.role.toString()) },
-            select: { name: true }
-        });
-
+        // =============================
+        // STEP 7: PREPARE ACTIVITY LOG DATA
+        // =============================
         const rawData = {
             newData: {
                 name: `${existingAdmin.first_name || ""} ${existingAdmin.last_name || ""}`.trim(),
@@ -56,32 +79,40 @@ export async function DELETE(req: Request) {
                 phone: existingAdmin.mobile,
                 twoFactorEnabled: existingAdmin.two_factor_enabled,
             },
-            oldData: null
+            oldData: null,
         };
 
+        // =============================
+        // STEP 8: COLLECT DEVICE INFORMATION
+        // =============================
         const deviceInfo = parseDeviceInfo(req.headers.get("user-agent") || "unknown");
 
+        // =============================
+        // STEP 9: LOG DELETE ACTIVITY
+        // =============================
         await logAdminActivity({
             logAction: "STAFF_DELETE",
             logMessage: "Staff deleted successfully",
             userId: existingAdmin.id,
-            // username: `${updatedAdmin.first_name} ${updatedAdmin.last_name}`,
             adminId: adminAuth.id,
             adminName: `${adminAuth.first_name || ""} ${adminAuth.last_name || ""}`.trim() || null,
-            ipAddress:
-                req.headers.get("x-forwarded-for") ||
-                req.headers.get("x-real-ip") ||
-                "unknown",
+            ipAddress: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown",
             device: deviceInfo.device,
             browser: deviceInfo.browser,
             rawData,
             userAgent: req.headers.get("user-agent") || "unknown",
         });
 
-        return NextResponse.json({ success: true, message: "Admin deleted successfully" });
+        // =============================
+        // STEP 10: RETURN SUCCESS RESPONSE
+        // =============================
+        return NextResponse.json({
+            success: true,
+            message: "Admin deleted successfully",
+        });
 
     } catch (error) {
-        console.error("Delete Admin API Error:", error);
+        console.error("ADMIN_DELETE_ERROR:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

@@ -1,16 +1,23 @@
-// app/api/admin/profile/route.ts
+// src/app/api/admin/profile/routes.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 
 export async function GET(req: Request) {
     try {
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const admin = await getAdminFromRequest(req);
 
         if (!admin) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // =============================
+        // STEP 2: FETCH ROLE INFORMATION
+        // =============================
         let roleName = "SuperAdmin";
         let permissions: any = {};
 
@@ -22,18 +29,17 @@ export async function GET(req: Request) {
             if (roleInfo) {
                 roleName = roleInfo.name;
 
-                db.adminRole.findMany({
-                    where: { id: Number(admin.role) }
-                })
-
                 try {
                     permissions = JSON.parse(roleInfo.permissions || "{}");
-                } catch (e) {
+                } catch {
                     permissions = {};
                 }
             }
         }
 
+        // =============================
+        // STEP 3: FORMAT PROFILE DATA
+        // =============================
         const formattedAdmin = {
             firstName: admin.first_name,
             lastName: admin.last_name,
@@ -51,9 +57,12 @@ export async function GET(req: Request) {
             role: admin.role,
             roleName,
             permissions,
-            twoFactorEnabled: admin.two_factor_enabled
+            twoFactorEnabled: admin.two_factor_enabled,
         };
-        // console.log(formattedAdmin);
+
+        // =============================
+        // STEP 4: RETURN PROFILE DATA
+        // =============================
         return NextResponse.json(formattedAdmin);
 
     } catch (error) {
@@ -64,12 +73,18 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
     try {
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const admin = await getAdminFromRequest(req);
 
         if (!admin) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // =============================
+        // STEP 2: PARSE REQUEST DATA
+        // =============================
         const body = await req.json();
 
         const {
@@ -83,33 +98,39 @@ export async function PUT(req: Request) {
             state,
             city,
             postalCode,
-            address
+            address,
         } = body;
 
+        // =============================
+        // STEP 3: VALIDATE INPUT DATA
+        // =============================
         if (!email) {
-            return NextResponse.json(
-                { error: "Email is required" },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: "Email is required" }, { status: 400 });
         }
 
+        // =============================
+        // STEP 4: UPDATE ADMIN PROFILE
+        // =============================
         await db.superAdmin.update({
             where: { id: admin.id },
             data: {
                 first_name: firstName,
                 last_name: lastName,
-                email: email,
+                email,
                 mobile: phone,
-                gender: gender,
+                gender,
                 date_of_birth: dateOfBirth ? new Date(dateOfBirth) : null,
-                country: country,
-                state: state,
-                city: city,
+                country,
+                state,
+                city,
                 postal_code: postalCode,
-                address: address
-            }
+                address,
+            },
         });
 
+        // =============================
+        // STEP 5: RETURN SUCCESS RESPONSE
+        // =============================
         return NextResponse.json({
             success: true,
             message: "Profile updated successfully"

@@ -1,15 +1,23 @@
+// src/app/api/admin/activity-log/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 
 export async function GET(req: Request) {
     try {
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const admin = await getAdminFromRequest(req);
 
         if (!admin) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // =============================
+        // STEP 2: FETCH ACTIVITY LOGS
+        // =============================
         const logs = await db.adminActivityLog.findMany({
             orderBy: { createdAt: "desc" },
             take: 200,
@@ -30,43 +38,41 @@ export async function GET(req: Request) {
             },
         });
 
-        // We also need to get the admin roles for displaying
-        // For simplicity, we can fetch all admin roles
-        const admins = await db.superAdmin.findMany({
-            select: { id: true, role: true }
-        });
+        // =============================
+        // STEP 3: FETCH ADMIN ROLE DATA
+        // =============================
+        const admins = await db.superAdmin.findMany({ select: { id: true, role: true } });
+        const roles = await db.adminRole.findMany({ select: { id: true, name: true } });
 
-        const roles = await db.adminRole.findMany({
-            select: { id: true, name: true }
-        });
-
+        // =============================
+        // STEP 4: BUILD ROLE MAPPINGS
+        // =============================
         const roleMap: Record<number, string> = {};
-        roles.forEach(r => {
-            roleMap[r.id] = r.name;
-        });
+        roles.forEach((role) => { roleMap[role.id] = role.name });
 
         const adminRoleMap: Record<number, string> = {};
-        admins.forEach(a => {
-            adminRoleMap[a.id] = roleMap[Number(a.role)] || "Unknown Role";
-        });
+        admins.forEach((admin) => { adminRoleMap[admin.id] = roleMap[Number(admin.role)] || "Unknown Role" });
 
+        // =============================
+        // STEP 5: FORMAT AND RETURN LOGS
+        // =============================
         return NextResponse.json({
             success: true,
-            logs: logs.map((l) => ({
-                id: l.id.toString(),
-                logAction: l.logAction,
-                logMessage: l.logMessage,
-                rawData: l.rawData,
-                userId: l.userId,
-                username: l.username,
-                adminId: l.adminId,
-                adminName: l.adminName,
-                actorRole: l.adminId ? adminRoleMap[l.adminId] || "Admin" : "System",
-                ipAddress: l.ipAddress,
-                userAgent: l.userAgent,
-                device: l.device,
-                browser: l.browser,
-                createdAt: l.createdAt?.toISOString().replace("T", " ").slice(0, 19),
+            logs: logs.map((log) => ({
+                id: log.id.toString(),
+                logAction: log.logAction,
+                logMessage: log.logMessage,
+                rawData: log.rawData,
+                userId: log.userId,
+                username: log.username,
+                adminId: log.adminId,
+                adminName: log.adminName,
+                actorRole: log.adminId ? adminRoleMap[log.adminId] || "Admin" : "System",
+                ipAddress: log.ipAddress,
+                userAgent: log.userAgent,
+                device: log.device,
+                browser: log.browser,
+                createdAt: log.createdAt?.toISOString().replace("T", " ").slice(0, 19),
             })),
         });
 

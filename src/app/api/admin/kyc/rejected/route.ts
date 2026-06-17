@@ -1,3 +1,5 @@
+// src/app/api/admin/kyc/rejected/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
@@ -5,11 +7,18 @@ import { format } from "date-fns";
 
 export async function GET(request: Request) {
     try {
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const adminAuth = await getAdminFromRequest(request);
+
         if (!adminAuth) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // =============================
+        // STEP 2: FETCH REJECTED KYC RECORDS
+        // =============================
         const data = await db.kycRejection.findMany({
             where: { status: "rejected" },
             select: {
@@ -19,19 +28,30 @@ export async function GET(request: Request) {
                 verifiedAt: true,
                 rawResponse: true,
             },
-            orderBy: { verifiedAt: "desc" },
+            orderBy: {
+                verifiedAt: "desc"
+            }
         });
 
-        // Deduplicate: one record per userId (first match = latest due to ordering)
+        // =============================
+        // STEP 3: REMOVE DUPLICATE USERS
+        // =============================
         const seenUserIds = new Set<number>();
+
         const uniqueData = data.filter((item) => {
-            if (seenUserIds.has(item.userId)) return false;
+            if (seenUserIds.has(item.userId)) {
+                return false;
+            }
             seenUserIds.add(item.userId);
             return true;
         });
 
+        // =============================
+        // STEP 4: FORMAT RESPONSE DATA
+        // =============================
         const formattedData = uniqueData.map((item) => {
             const raw = (item.rawResponse as Record<string, any>) || {};
+
             return {
                 id: String(item.id),
                 userID: String(item.userId),
@@ -40,29 +60,32 @@ export async function GET(request: Request) {
                 email: raw.email || "",
                 phone: raw.phone || "",
                 documentType: raw.documentType || "",
-                rejectedAt: item.verifiedAt
-                    ? format(item.verifiedAt, "dd MMM yyyy, h:mm:ss a")
-                    : raw.rejectedAt || "N/A",
-                rawRejectedAt: item.verifiedAt
-                    ? item.verifiedAt.toISOString()
-                    : raw.rawRejectedAt || null,
+                rejectedAt: item.verifiedAt ? format(item.verifiedAt, "dd MMM yyyy, h:mm:ss a") : raw.rejectedAt || "N/A",
+
+                rawRejectedAt: item.verifiedAt ? item.verifiedAt.toISOString() : raw.rawRejectedAt || null,
+
                 rejectedBy: raw.rejectedBy || "",
+
                 reason: raw.reason || raw.rejectionReason || raw.rejectReason || "",
+
                 avatar: `${(raw.firstName || "")[0] || ""}${(raw.lastName || "")[0] || ""}`.toUpperCase(),
+
                 accountType: raw.accountType || "",
+
                 internationalVerified: raw.internationalVerified || false,
             };
         });
 
+        // =============================
+        // STEP 5: RETURN REJECTED KYC DATA
+        // =============================
         return NextResponse.json({
             success: true,
-            data: formattedData,
+            data: formattedData
         });
+
     } catch (error) {
         console.error("Error fetching rejected KYC data:", error);
-        return NextResponse.json(
-            { success: false, error: "Internal Server Error" },
-            { status: 500 }
-        );
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

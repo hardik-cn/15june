@@ -6,21 +6,22 @@ import { getDiditSessionData } from "@/lib/didit";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 import { decodeId } from "@/lib/admin/encodeId";
 
-export async function GET(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id: idParam } = await params;
-        // console.log("API Request ID:", idParam);
-
-        // Authenticate admin
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const adminAuth = await getAdminFromRequest(request);
+
         if (!adminAuth) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Validate: ID must be a positive integer
+        // =============================
+        // STEP 2: GET AND VALIDATE KYC ID
+        // =============================
+        const { id: idParam } = await params;
+
         let numericId = Number(idParam);
 
         if (!Number.isInteger(numericId)) {
@@ -28,12 +29,12 @@ export async function GET(
         }
 
         if (!Number.isInteger(numericId) || numericId <= 0) {
-            return NextResponse.json(
-                { success: false, error: "Invalid ID: must be a positive integer" },
-                { status: 400 }
-            );
+            return NextResponse.json({ success: false, error: "Invalid ID: must be a positive integer" }, { status: 400 });
         }
 
+        // =============================
+        // STEP 3: FETCH APPROVED KYC PROFILE
+        // =============================
         const kycProfile = await db.kycProfile.findUnique({
             where: { id: numericId, status: "approved" },
             include: {
@@ -43,21 +44,22 @@ export async function GET(
             },
         });
 
-        // Fail fast before any further async calls
         if (!kycProfile) {
-            return NextResponse.json(
-                { success: false, error: "KYC approved record not found." },
-                { status: 404 }
-            );
+            return NextResponse.json({ success: false, error: "KYC approved record not found." }, { status: 404 });
         }
 
+        // =============================
+        // STEP 4: FETCH DIDIT VERIFICATION DATA
+        // =============================
         let diditSessionData = null;
         let diditDecisionData = null;
 
         if (kycProfile.internationalVerified === true) {
             diditSessionData = await db.diditSession.findFirst({
                 where: { userId: kycProfile.userId },
-                orderBy: { createdAt: "desc" },
+                orderBy: {
+                    createdAt: "desc",
+                },
             });
 
             if (diditSessionData?.sessionId) {
@@ -65,40 +67,49 @@ export async function GET(
             }
         }
 
-        // console.log("diditSessionData", diditSessionData);
-        // console.log("diditDecisionData", diditDecisionData);
+        // =============================
+        // STEP 5: FETCH VERIFICATION DOCUMENTS
+        // =============================
         const { user } = kycProfile;
-        // console.log("User Data:", decodeId(user.id));
 
-        // Fetch latest successful + pending verification docs per type
         const allVerificationDocs = await db.verificationDocument.findMany({
             where: {
                 userId: user.id,
                 verificationStatus: "success",
-                attemptStatus: "pending",
+                attemptStatus: "pending"
             },
-            orderBy: { createdAt: "desc" },
+            orderBy: {
+                createdAt: "desc"
+            },
         });
 
-        // Keep only the latest doc per verificationType
-        const latestDocsMap = new Map<string, typeof allVerificationDocs[0]>();
+        // =============================
+        // STEP 6: KEEP LATEST DOCUMENT PER TYPE
+        // =============================
+        const latestDocsMap = new Map<string, (typeof allVerificationDocs)[0]>();
+
         for (const doc of allVerificationDocs) {
             if (doc.verificationType && !latestDocsMap.has(doc.verificationType)) {
                 latestDocsMap.set(doc.verificationType, doc);
             }
         }
+
         const verificationDocs = Array.from(latestDocsMap.values());
 
-        const getDocNumber = (type: string) =>
-            verificationDocs.find((v) => v.verificationType === type)?.documentNumber ?? null;
+        const getDocNumber = (type: string) => verificationDocs.find((v) => v.verificationType === type)?.documentNumber ?? null;
 
+        // =============================
+        // STEP 7: FORMAT RESPONSE DATA
+        // =============================
         const data = {
             id: idParam,
+
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
             phone: user.phone,
             countryCode: user.countryCode,
+
             isEmailVerified: user.isEmailVerified,
             isPhoneVerified: user.isPhoneVerified,
 
@@ -114,6 +125,7 @@ export async function GET(
             accountType: kycProfile.accountType,
             companyName: kycProfile.companyName,
             businessType: kycProfile.businessType,
+
             gstNumberDoc: kycProfile.gstNumber,
 
             gstVerified: kycProfile.gstVerified,
@@ -121,6 +133,7 @@ export async function GET(
             aadharVerified: kycProfile.aadharVerified,
 
             createdAt: kycProfile.createdAt.toISOString(),
+
             status: kycProfile.status,
 
             gstNumber: getDocNumber("gst"),
@@ -130,24 +143,30 @@ export async function GET(
             userId: user.id,
 
             approvedBy: kycProfile.approvedBy,
+
             approvedAt: kycProfile.approvedAt?.toISOString() ?? null,
 
             internationalVerified: kycProfile.internationalVerified,
+
             representativeName: kycProfile.representativeName,
+
             diditSession: diditSessionData,
+
             diditDecision: diditDecisionData,
 
             businessDocuments: kycProfile.businessDocuments,
         };
 
-        // console.log("Server KYC Data:", data.documents);
-        return NextResponse.json({ success: true, data });
+        // =============================
+        // STEP 8: RETURN KYC DATA
+        // =============================
+        return NextResponse.json({
+            success: true,
+            data
+        });
 
     } catch (error) {
         console.error("Error fetching KYC details:", error);
-        return NextResponse.json(
-            { success: false, error: "Internal Server Error" },
-            { status: 500 }
-        );
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

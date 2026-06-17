@@ -1,15 +1,23 @@
+// src/app/api/admin/staff/activity/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 
 export async function GET(req: Request) {
     try {
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const admin = await getAdminFromRequest(req);
 
         if (!admin) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // =============================
+        // STEP 2: VALIDATE QUERY PARAMS
+        // =============================
         const url = new URL(req.url);
         const adminIdParam = url.searchParams.get("adminId");
         const adminId = adminIdParam ? Number(adminIdParam) : NaN;
@@ -18,6 +26,9 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "adminId is required" }, { status: 400 });
         }
 
+        // =============================
+        // STEP 3: FETCH ACTIVITY LOGS
+        // =============================
         const logs = await db.adminActivityLog.findMany({
             where: { adminId },
             orderBy: { createdAt: "desc" },
@@ -34,15 +45,21 @@ export async function GET(req: Request) {
             },
         });
 
+        // =============================
+        // STEP 4: FORMAT RESPONSE DATA
+        // =============================
+        const formattedLogs = logs.map((log) => ({ ...log, createdAt: log.createdAt?.toISOString().replace("T", " ").slice(0, 19), }));
+
+        // =============================
+        // STEP 5: RETURN ACTIVITY LOGS
+        // =============================
         return NextResponse.json({
             success: true,
-            logs: logs.map((l) => ({
-                ...l,
-                createdAt: l.createdAt?.toISOString().replace("T", " ").slice(0, 19),
-            })),
+            logs: formattedLogs,
         });
+
     } catch (error) {
-        console.error("Admin Staff Activity API Error:", error);
+        console.error("ADMIN_ACTIVITY_LOG_API_ERROR:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

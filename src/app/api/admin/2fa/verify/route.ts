@@ -13,78 +13,68 @@ import { parseDeviceInfo } from "@/lib/admin/device";
 import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 function getClientInfo(req: Request) {
+
     const userAgent = req.headers.get("user-agent") ?? "unknown";
-    const ipAddress =
-        req.headers.get("x-forwarded-for") ??
-        req.headers.get("x-real-ip") ??
-        "unknown";
+    const ipAddress = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
     const { device, browser } = parseDeviceInfo(userAgent);
+
     return { userAgent, ipAddress, device, browser };
 }
 
 export async function POST(req: Request) {
     try {
-        // STEP 1: Parse input
-        const { code } = await req.json();
+        // =============================
+        // STEP 1: VALIDATE OTP REQUEST
+        // =============================
+
         const { userAgent, ipAddress, device, browser } = getClientInfo(req);
 
+        const { code } = await req.json();
         if (!code || code.length !== 6) {
-            return NextResponse.json(
-                { success: false, error: "A 6-digit OTP code is required." },
-                { status: 400 }
-            );
+            return NextResponse.json({ success: false, error: "A 6-digit OTP code is required." }, { status: 400 });
         }
-
+        // =============================
+        // STEP 2: VALIDATE TEMP SESSION
+        // =============================
         const cookieStore = await cookies();
-
-        // STEP 2: Validate temp session (set during /api/admin/login)
         const tempSession = cookieStore.get("2fa_temp_session");
 
         if (!tempSession) {
-            return NextResponse.json(
-                { success: false, error: "Session expired. Please login again." },
-                { status: 401 }
-            );
+            return NextResponse.json({ success: false, error: "Session expired. Please login again." }, { status: 401 });
         }
 
-        // Also read isFirstTimeSetup from the secure httpOnly cookie
-        const sessionData = JSON.parse(tempSession.value) as {
-            id: number;
-            email: string;
-            isFirstTimeSetup: boolean;
-        };
+        const sessionData = JSON.parse(tempSession.value) as { id: number; email: string; isFirstTimeSetup: boolean; };
         const id = Number(sessionData.id);
         const isFirstTimeSetup = sessionData.isFirstTimeSetup ?? false;
 
-        // STEP 3: Fetch admin record
-        const admin = await db.superAdmin.findUnique({
-            where: { id },
-            select: {
-                id: true,
-                first_name: true,
-                last_name: true,
-                email: true,
-                role: true,
-                two_factor_secret: true,
-                two_factor_enabled: true,
-            },
-        });
+        // =============================
+        // STEP 3: FETCH ADMIN ACCOUNT
+        // =============================
+        const admin =
+            await db.superAdmin.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    first_name: true,
+                    last_name: true,
+                    email: true,
+                    role: true,
+                    two_factor_secret: true,
+                    two_factor_enabled: true,
+                },
+            });
 
         if (!admin) {
-            return NextResponse.json(
-                { success: false, error: "Admin not found." },
-                { status: 404 }
-            );
+            return NextResponse.json({ success: false, error: "Admin not found." }, { status: 404 });
         }
 
         if (!admin.two_factor_secret) {
-            return NextResponse.json(
-                { success: false, error: "2FA is not configured for this account." },
-                { status: 400 }
-            );
+            return NextResponse.json({ success: false, error: "2FA is not configured for this account." }, { status: 400 });
         }
 
-        // STEP 4: Verify the TOTP code
+        // =============================
+        // STEP 4: VERIFY TOTP CODE
+        // =============================
         const totp = new OTPAuth.TOTP({
             secret: OTPAuth.Secret.fromBase32(admin.two_factor_secret),
             algorithm: "SHA1",
@@ -92,17 +82,15 @@ export async function POST(req: Request) {
             period: 30,
         });
 
-        // window: 1 allows ±30s clock drift
         const delta = totp.validate({ token: code, window: 1 });
 
         if (delta === null) {
-            return NextResponse.json(
-                { success: false, error: "Invalid or expired code. Please try again." },
-                { status: 400 }
-            );
+            return NextResponse.json({ success: false, error: "Invalid or expired code. Please try again." }, { status: 400 });
         }
 
-        // STEP 5: OTP verified — update admin record
+        // =============================
+        // STEP 5: UPDATE ADMIN LOGIN STATE
+        // =============================
         await db.superAdmin.update({
             where: { id: admin.id },
             data: {
@@ -112,21 +100,21 @@ export async function POST(req: Request) {
             },
         });
 
-        // STEP 6: Clear the short-lived temp session
+        // =============================
+        // STEP 6: CLEAR TEMP SESSION
+        // =============================
         cookieStore.delete("2fa_temp_session");
 
-        // STEP 7: Generate tokens
+        // =============================
+        // STEP 7: GENERATE AUTH TOKENS
+        // =============================
         const accessToken = createAccessToken(admin.id);
         const refreshToken = createRefreshToken(admin.id);
+        const refreshHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
 
-        const refreshHash = crypto
-            .createHash("sha256")
-            .update(refreshToken)
-            .digest("hex");
-
-        // const { device } = parseDeviceInfo(userAgent); 
-
-        // STEP 8: Create persistent session
+        // =============================
+        // STEP 8: CREATE ADMIN SESSION
+        // =============================
         await db.adminSession.create({
             data: {
                 sessionId: nanoid(),
@@ -141,16 +129,20 @@ export async function POST(req: Request) {
             },
         });
 
-        // STEP 9: Set refresh token cookie
+        // =============================
+        // STEP 9: SET REFRESH TOKEN COOKIE
+        // =============================
         cookieStore.set("admin_refresh_token", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             path: "/",
-            maxAge: 24 * 60 * 60, // 24 hours
+            maxAge: 24 * 60 * 60,
         });
 
-        // STEP 10: Always log LOGIN_SUCCESS
+        // =============================
+        // STEP 10: LOG LOGIN ACTIVITY
+        // =============================
         await logAdminActivity({
             logAction: "LOGIN_SUCCESS",
             logMessage: "logged in successfully",
@@ -162,7 +154,9 @@ export async function POST(req: Request) {
             browser,
         });
 
-        // STEP 11: Only log 2FA_VERIFIED on first time setup
+        // =============================
+        // STEP 11: LOG FIRST-TIME 2FA SETUP
+        // =============================
         if (isFirstTimeSetup) {
             await logAdminActivity({
                 logAction: "2FA_VERIFIED",
@@ -176,36 +170,39 @@ export async function POST(req: Request) {
             });
         }
 
-        // STEP 12: Return access token
-        const safeAdmin = {
-            id: admin.id,
-            email: admin.email,
-            role: admin.role,
-        };
+        // =============================
+        // STEP 12: RETURN AUTHENTICATED SESSION
+        // =============================
+        const safeAdmin = { id: admin.id, email: admin.email, role: admin.role };
+
         return NextResponse.json({
             success: true,
             accessToken,
-            safeAdmin,
+            safeAdmin
         });
+
     } catch (error) {
         console.error("2FA_VERIFY_ERROR:", error);
-
-        return NextResponse.json(
-            { success: false, error: "Internal server error" },
-            { status: 500 }
-        );
+        return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
     }
 }
 
 export async function GET(req: Request) {
     try {
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const admin = await getAdminFromRequest(req);
 
         if (!admin) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // =============================
+        // STEP 2: RETURN ENDPOINT STATUS
+        // =============================
         return NextResponse.json({ message: "2FA verify endpoint is active" });
+
     } catch (error) {
         console.error("2FA_VERIFY_GET_ERROR:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

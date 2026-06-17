@@ -1,4 +1,4 @@
-// app/api/admin/email-templates/[id]/send/route.ts
+// src/app/api/admin/email-templates/[id]/send/route.ts
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
@@ -7,25 +7,38 @@ import { sendTemplateEmail } from "@/lib/emails/sendTemplateEmail";
 
 export async function POST(req: Request) {
     try {
-        // 1. Authenticate admin
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         const adminAuth = await getAdminFromRequest(req);
+
         if (!adminAuth) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 2. Identify the target user from the request body
+        // =============================
+        // STEP 2: VALIDATE REQUEST DATA
+        // =============================
         const { userId } = await req.json();
+
         if (!userId) {
             return NextResponse.json({ error: "userId is required" }, { status: 400 });
         }
 
-        // 3. Fetch that specific user
-        const user = await db.user.findUnique({ where: { id: Number(userId) } });
+        // =============================
+        // STEP 3: FETCH TARGET USER
+        // =============================
+        const user = await db.user.findUnique({
+            where: { id: Number(userId) },
+        });
+
         if (!user || !user.email) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // 5. Send the email to that user only
+        // =============================
+        // STEP 4: SEND TEMPLATE EMAIL
+        // =============================
         await sendTemplateEmail({
             templateSlug: "re-kyc-required",
             to: user.email,
@@ -37,15 +50,16 @@ export async function POST(req: Request) {
             },
         });
 
+        // =============================
+        // STEP 5: RETURN SUCCESS RESPONSE
+        // =============================
         return NextResponse.json({
             success: true,
-            message: `Email sent to ${user.email}`,
+            message: `Email sent to ${user.email}`
         });
+
     } catch (error) {
         console.error("Admin email template send Error:", error);
-        return NextResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

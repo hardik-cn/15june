@@ -12,7 +12,7 @@ const csp = [
   "font-src 'self' data:",
   "connect-src 'self' https:",
   "media-src 'self' blob: https:",
-  "frame-ancestors 'self'",
+  "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
 ].join("; ");
@@ -20,7 +20,7 @@ const csp = [
 const securityHeaders = [
   {
     key: "X-Frame-Options",
-    value: "SAMEORIGIN",
+    value: "DENY",
   },
   {
     key: "X-Content-Type-Options",

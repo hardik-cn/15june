@@ -1,6 +1,6 @@
-// admin/login/page.tsx
-"use client";
+// src/app/admin/login/page.tsx
 
+"use client";
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -12,7 +12,7 @@ import DottedPattern from "./components/DottedPattern";
 import Spinner from "./components/Spinner";
 import OTPInput from "./components/OTPInput";
 import { Step, FormErrors } from "./types";
- 
+
 export default function AdminLoginPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +28,6 @@ export default function AdminLoginPage() {
     const [otpauthUrl, setOtpauthUrl] = useState("");
     const [twoFactorCode, setTwoFactorCode] = useState("");
 
- 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = { email: "", password: "", general: "" };
         let isValid = true;

@@ -1,7 +1,8 @@
+// src/app/api/admin/document/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
-import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { db } from "@/lib/db";
 
@@ -12,33 +13,48 @@ export async function GET(request: NextRequest) {
     try {
         let admin = null;
 
-        // 1. Try Authorization header
+        // =============================
+        // STEP 1: AUTHENTICATE ADMIN
+        // =============================
         try {
             const authHeader = request.headers.get("authorization");
+
             if (authHeader && authHeader.startsWith("Bearer ")) {
                 const token = authHeader.split(" ")[1];
+
                 const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as { userId: number };
+
                 if (payload?.userId) {
-                    admin = await db.superAdmin.findUnique({ where: { id: payload.userId } });
+                    admin = await db.superAdmin.findUnique({
+                        where: { id: payload.userId }
+                    });
                 }
             }
-        } catch (err) {
-            // ignore
+
+        } catch {
+            // Ignore invalid authorization token
         }
 
-        // 2. Try token query parameter
+        // =============================
+        // STEP 2: AUTHENTICATE USING QUERY TOKEN
+        // =============================
         if (!admin) {
             try {
                 const { searchParams } = new URL(request.url);
                 const token = searchParams.get("token");
+
                 if (token) {
                     const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as { userId: number };
+
                     if (payload?.userId) {
-                        admin = await db.superAdmin.findUnique({ where: { id: payload.userId } });
+                        admin = await db.superAdmin.findUnique({
+                            where: { id: payload.userId }
+                        });
                     }
                 }
-            } catch (err) {
-                // ignore
+
+            } catch {
+                // Ignore invalid query token
             }
         }
 
@@ -46,6 +62,9 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // =============================
+        // STEP 3: VALIDATE REQUEST PARAMETERS
+        // =============================
         const { searchParams } = new URL(request.url);
         const filePath = searchParams.get("path");
         const forceDownload = searchParams.get("download") === "1";
@@ -54,8 +73,11 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Missing path parameter" }, { status: 400 });
         }
 
-        // Resolve the full absolute path and make sure it stays within PRIVATE_DIR (path traversal guard)
+        // =============================
+        // STEP 4: VALIDATE FILE PATH
+        // =============================
         const resolvedPath = path.resolve(PRIVATE_DIR, filePath);
+
         if (!resolvedPath.startsWith(PRIVATE_DIR)) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
@@ -64,6 +86,9 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "File not found" }, { status: 404 });
         }
 
+        // =============================
+        // STEP 5: LOAD FILE CONTENT
+        // =============================
         const fileBuffer = fs.readFileSync(resolvedPath);
         const ext = path.extname(resolvedPath).toLowerCase();
 
@@ -77,18 +102,19 @@ export async function GET(request: NextRequest) {
         const contentType = mimeTypes[ext] || "application/octet-stream";
         const fileName = path.basename(resolvedPath);
 
-        return new NextResponse(fileBuffer, {
-            status: 200,
-            headers: {
-                "Content-Type": contentType,
-                "Content-Disposition": forceDownload
-                    ? `attachment; filename="${fileName}"`
-                    : contentType === "application/pdf"
-                        ? `inline; filename="${fileName}"`
-                        : `attachment; filename="${fileName}"`,
-                "Cache-Control": "private, no-cache",
-            },
-        });
+        // =============================
+        // STEP 6: RETURN FILE RESPONSE
+        // =============================
+        return new NextResponse(fileBuffer,
+            {
+                status: 200,
+                headers: {
+                    "Content-Type": contentType,
+                    "Content-Disposition": forceDownload ? `attachment; filename="${fileName}"` : contentType === "application/pdf" ? `inline; filename="${fileName}"` : `attachment; filename="${fileName}"`,
+                    "Cache-Control": "private, no-cache",
+                },
+            }
+        );
 
     } catch (error) {
         console.error("Error serving document:", error);
