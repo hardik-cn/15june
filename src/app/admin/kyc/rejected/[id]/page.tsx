@@ -11,6 +11,7 @@ import { getBusinessTypeLabel } from "@/lib/business-types";
 import { KYC_TAB_ORDER, KYC_TAB_LABELS, KYC_VERIFICATION_LABELS, getVerificationLabel, getTabLabel, } from "@/lib/admin/verification-constants";
 import { encodeId } from "@/lib/admin/encodeId";
 import { FileText } from "lucide-react";
+import { format } from "date-fns";
 
 const InnerZoomImage = ({ src, alt, className = "" }: { src: string; alt: string; className?: string }) => {
     const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({
@@ -751,15 +752,16 @@ function RejectedKYCDetailsContent() {
                                                         <div className="pt-3 border-t border-white/[0.05] grid grid-cols-2 gap-4 text-xs">
                                                             <div className="inline-flex items-center gap-2 align-center">
                                                                 <p className="text-xs font-semibold text-white/40 tracking-wider">Verified At:</p>
-                                                                <p className="text-white/90">{
-                                                                    new Date(doc.createdAt).toLocaleString("en-US", {
-                                                                        month: "short",
-                                                                        day: "2-digit",
-                                                                        year: "numeric",
-                                                                        hour: "2-digit",
-                                                                        minute: "2-digit",
-                                                                        second: "2-digit",
-                                                                    })}</p>
+                                                                <p className="text-white/90">{new Intl.DateTimeFormat("en-GB", {
+                                                                    timeZone: "UTC",
+                                                                    day: "2-digit",
+                                                                    month: "short",
+                                                                    year: "numeric",
+                                                                    hour: "2-digit",
+                                                                    minute: "2-digit",
+                                                                    second: "2-digit",
+                                                                    hour12: true,
+                                                                }).format(new Date(doc.verifiedAt)).replace("am", "AM").replace("pm", "PM")}</p>
                                                             </div>
                                                             {doc.verificationStatus === 'success' && (
                                                                 <div className="text-right">
@@ -1089,30 +1091,33 @@ function RejectedKYCDetailsContent() {
                                                             <div>
                                                                 <p className="text-xs font-light text-white/40 tracking-wider pb-2">Rejected At</p>
                                                                 <p className={`text-[13px] font-semibold tracking-wide ${isPrimary ? "text-white/90" : "text-white/60"}`}>
-                                                                    {rejection.rejectedAt
-                                                                        ? new Date(rejection.rejectedAt).toLocaleString("en-IN", {
-                                                                            dateStyle: "long",
-                                                                            timeStyle: "short",
-                                                                        })
-                                                                        : new Date(rejection.createdAt).toLocaleString("en-IN", {
-                                                                            dateStyle: "long",
-                                                                            timeStyle: "short",
-                                                                        })}
+                                                                    {new Intl.DateTimeFormat("en-GB", {
+                                                                        timeZone: "UTC",
+                                                                        day: "2-digit",
+                                                                        month: "short",
+                                                                        year: "numeric",
+                                                                        hour: "2-digit",
+                                                                        minute: "2-digit",
+                                                                        second: "2-digit",
+                                                                        hour12: true,
+                                                                    }).format(new Date(rejection.rejectedAt)).replace("am", "AM").replace("pm", "PM")}
                                                                 </p>
                                                             </div>
                                                             <div>
                                                                 <p className="text-xs font-light text-white/40 tracking-wider pb-2">Submitted On</p>
-                                                                <p className={`text-[13px] font-semibold tracking-wide ${isPrimary ? "text-white/90" : "text-white/60"}`}>
-                                                                    {rejection.createdAt
-                                                                        ? new Date(rejection.createdAt).toLocaleString("en-IN", {
-                                                                            dateStyle: "long",
-                                                                            timeStyle: "short",
-                                                                        })
-                                                                        : new Date(rejection.rejectedAt).toLocaleString("en-IN", {
-                                                                            dateStyle: "long",
-                                                                            timeStyle: "short",
-                                                                        })}
-                                                                </p>
+                                                                {/* <p className={`text-[13px] font-semibold tracking-wide ${isPrimary ? "text-white/90" : "text-white/60"}`}> */}
+                                                                {/* {rejection.createdAt ? format(new Date(rejection.createdAt), "dd MMM yyyy, h:mm:ss a") : "N/A"} */}
+                                                                <p className={`text-[13px] font-semibold tracking-wide ${isPrimary ? "text-white/90" : "text-white/60"}`}>{new Intl.DateTimeFormat("en-GB", {
+                                                                    timeZone: "UTC",
+                                                                    day: "2-digit",
+                                                                    month: "short",
+                                                                    year: "numeric",
+                                                                    hour: "2-digit",
+                                                                    minute: "2-digit",
+                                                                    second: "2-digit",
+                                                                    hour12: true,
+                                                                }).format(new Date(rejection.createdAt)).replace("am", "AM").replace("pm", "PM")}</p>
+                                                                {/* </p> */}
                                                             </div>
                                                             <div className="hidden md:block">
                                                                 <p className="text-xs font-light text-white/40 tracking-wider pb-2">KYC Status</p>

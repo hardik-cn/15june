@@ -191,7 +191,7 @@ function DeletedStaffContent() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent mb-2">
-                        Deleted Admin
+                        Deleted Admin List
                     </h1>
                 </div>
             </div>
@@ -265,7 +265,7 @@ function DeletedStaffContent() {
                 <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                 <input
                     type="text"
-                    placeholder="Search deleted admin by name, email, or ID..."
+                    placeholder="Search by name, email, or role..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-12 pr-4 py-3 rounded-xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08] text-white/90 placeholder-white/30 focus:outline-none focus:border-white/[0.2]"
@@ -292,7 +292,7 @@ function DeletedStaffContent() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-white/[0.08]">
-                                    <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Name</th>
+                                    <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Users Name</th>
                                     <th className="text-left py-4 px-6 text-white/50 text-sm font-medium hidden md:table-cell">Email | Mobile No.</th>
                                     <th className="text-left py-4 px-6 text-white/50 text-sm font-medium hidden md:table-cell">User Role</th>
                                     {/* <th className="text-left py-4 px-6 text-white/50 text-sm font-medium hidden md:table-cell">Status</th> */}

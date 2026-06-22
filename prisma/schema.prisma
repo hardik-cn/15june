@@ -94,6 +94,7 @@ model SuperAdmin {
   LastStatus         Int?
   two_factor_enabled Boolean @default(false)
   two_factor_secret  String?
+  two_factor_configured Boolean @default(false)
 
   // Profile Fields
   gender        String?

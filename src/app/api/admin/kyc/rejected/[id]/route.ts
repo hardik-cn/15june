@@ -206,9 +206,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
                         rejectedBy,
 
-                        createdAt: dataResponse.createdAt ?? null,
+                        createdAt: dataResponse.createdAt ?? dataResponse.createdAt.toISOString().replace("T", " ").substring(0, 19),
 
-                        rejectedAt: dataResponse.rejectedAt ?? kycRejection.verifiedAt.toISOString(),
+                        rejectedAt: dataResponse.rejectedAt ?? kycRejection.verifiedAt.toISOString().replace("T", " ").substring(0, 19),
 
                         rejectionReason: dataResponse.rejectionReason ?? dataResponse.rejectReason ?? null,
 

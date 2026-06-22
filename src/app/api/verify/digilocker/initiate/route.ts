@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { cashfreeClient } from "@/lib/cashfree";
 import crypto from "crypto";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function POST(req: NextRequest) {
     try {
@@ -69,9 +70,11 @@ export async function POST(req: NextRequest) {
                 verificationType: "digilocker",
                 cashfreeRefId: verificationResult.verification_id,
                 verificationToken: secureToken,
-                verificationTokenExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+                verificationTokenExpiresAt: getISTDateWithOffset(10 / 60),
                 verificationStatus: "pending",
                 rawResponse: verificationResult as any,
+                createdAt: getISTDateWithOffset(0),
+                updatedAt: getISTDateWithOffset(0),
             },
         });
 

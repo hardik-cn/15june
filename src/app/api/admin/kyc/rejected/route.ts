@@ -59,10 +59,11 @@ export async function GET(request: Request) {
                 lastName: raw.lastName || "",
                 email: raw.email || "",
                 phone: raw.phone || "",
+                countryCode: raw.countryCode || '',
                 documentType: raw.documentType || "",
-                rejectedAt: item.verifiedAt ? format(item.verifiedAt, "dd MMM yyyy, h:mm:ss a") : raw.rejectedAt || "N/A",
+                rejectedAt: item.verifiedAt ? item.verifiedAt.toISOString().replace("T", " ").substring(0, 19) : raw.rejectedAt || "N/A",
 
-                rawRejectedAt: item.verifiedAt ? item.verifiedAt.toISOString() : raw.rawRejectedAt || null,
+                rawRejectedAt: item.verifiedAt ? item.verifiedAt.toISOString().replace("T", " ").substring(0, 19) : raw.rawRejectedAt || null,
 
                 rejectedBy: raw.rejectedBy || "",
 

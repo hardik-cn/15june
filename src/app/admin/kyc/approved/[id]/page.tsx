@@ -11,6 +11,7 @@ import { getAccessToken } from "@/lib/auth/tokenStore";
 import { getBusinessTypeLabel } from "@/lib/business-types";
 import { KYC_TAB_ORDER, KYC_TAB_LABELS, KYC_VERIFICATION_LABELS, getVerificationLabel, getTabLabel, } from "@/lib/admin/verification-constants";
 import { encodeId } from "@/lib/admin/encodeId";
+import { format } from "date-fns";
 
 
 const InnerZoomImage = ({ src, alt, className = "" }: { src: string; alt: string; className?: string }) => {
@@ -807,15 +808,25 @@ function ApprovedKYCDetailsContent() {
                                                         <div className="pt-3 border-t border-white/[0.05] grid grid-cols-2 gap-4 text-xs">
                                                             <div className="inline-flex items-center gap-2 align-center">
                                                                 <p className="text-xs font-semibold text-white/40 tracking-wider">Verified At:</p>
-                                                                <p className="text-white/90">{
-                                                                    new Date(doc.createdAt).toLocaleString("en-US", {
+                                                                {/* <p className="text-white/90">{
+                                                                    new Date(doc.verifiedAt).toLocaleString("en-US", {
                                                                         month: "short",
                                                                         day: "2-digit",
                                                                         year: "numeric",
                                                                         hour: "2-digit",
                                                                         minute: "2-digit",
                                                                         second: "2-digit",
-                                                                    })}</p>
+                                                                    })}</p> */}
+                                                                <p className="text-white/90">{new Intl.DateTimeFormat("en-GB", {
+                                                                    timeZone: "UTC",
+                                                                    day: "2-digit",
+                                                                    month: "short",
+                                                                    year: "numeric",
+                                                                    hour: "2-digit",
+                                                                    minute: "2-digit",
+                                                                    second: "2-digit",
+                                                                    hour12: true,
+                                                                }).format(new Date(doc.verifiedAt)).replace("am", "AM").replace("pm", "PM")}</p>
                                                             </div>
                                                             {doc.verificationStatus === 'success' && (
                                                                 <div className="text-right">
@@ -1177,10 +1188,7 @@ function ApprovedKYCDetailsContent() {
                                                     </div>
                                                     <p className="text-[13px] font-semibold tracking-wide text-white/60">
                                                         {kycData.approvedAt
-                                                            ? new Date(kycData.approvedAt).toLocaleString("en-IN", {
-                                                                dateStyle: "long",
-                                                                timeStyle: "short",
-                                                            })
+                                                            ? format(new Date(kycData.approvedAt), "dd MMM yyyy, h:mm:ss a")
                                                             : "N/A"}
                                                     </p>
                                                 </div>
@@ -1192,10 +1200,7 @@ function ApprovedKYCDetailsContent() {
                                                     </div>
                                                     <p className="text-[13px] font-semibold tracking-wide text-white/60">
                                                         {kycData.createdAt
-                                                            ? new Date(kycData.createdAt).toLocaleString("en-IN", {
-                                                                dateStyle: "long",
-                                                                timeStyle: "short",
-                                                            })
+                                                            ? format(new Date(kycData.createdAt), "dd MMM yyyy, h:mm:ss a")
                                                             : "N/A"}
                                                     </p>
                                                 </div>

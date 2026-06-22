@@ -23,35 +23,35 @@ interface Admin {
 }
 
 // Helper function to get relative time (e.g., "4 months ago")
-const getRelativeTime = (dateString: string | undefined | null): string => {
+const getRelativeTime = (dateString?: string | null): string => {
     if (!dateString) return "N/A";
-    if (dateString === "Never") return "";
 
-    const date = new Date(dateString.replace(" ", "T"));
-    if (Number.isNaN(date.getTime())) return "";
-    const now = new Date();
-    const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000);
-    const absDiff = Math.abs(diffInSeconds);
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
 
-    if (absDiff < 60) return "Just now";
+    const diffInSeconds = Math.floor((date.getTime() - Date.now()) / 1000);
+    const abs = Math.abs(diffInSeconds);
 
-    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "always" });
+    if (abs < 60) return "Just now";
 
-    const shortUnits = [
-        { unit: "y", seconds: 31536000 },
-        { unit: "mo", seconds: 2592000 },
-        { unit: "w", seconds: 604800 },
-        { unit: "d", seconds: 86400 },
-        { unit: "h", seconds: 3600 },
-        { unit: "min", seconds: 60 },
+    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+    const units = [
+        { unit: "year", sec: 31536000 },
+        { unit: "month", sec: 2592000 },
+        { unit: "week", sec: 604800 },
+        { unit: "day", sec: 86400 },
+        { unit: "hour", sec: 3600 },
+        { unit: "minute", sec: 60 },
     ] as const;
 
-    for (const { unit, seconds } of shortUnits) {
-        if (absDiff >= seconds) {
-            const value = Math.trunc(diffInSeconds / seconds);
-            return `${Math.abs(value)} ${unit} ${value < 0 ? "ago" : "from now"}`;
+    for (const { unit, sec } of units) {
+        if (abs >= sec) {
+            const value = Math.floor(diffInSeconds / sec);
+            return rtf.format(value, unit);
         }
     }
+
     return "Just now";
 };
 
@@ -325,8 +325,8 @@ function AdminListContent() {
         fetchActivityLogs();
     }, [selectedAdmin, modalType, viewTab]);
 
-    const fetchAdmins = async () => {
-        setIsLoading(true);
+    const fetchAdmins = async (showLoading = true) => {
+        if (showLoading) setIsLoading(true);
         try {
             const res = await adminFetch("/api/admin/staff/list");
             const data = await res.json();
@@ -357,7 +357,7 @@ function AdminListContent() {
         } catch (error) {
             console.error("Failed to fetch admins:", error);
         } finally {
-            setIsLoading(false);
+            if (showLoading) setIsLoading(false);
         }
     };
 
@@ -552,31 +552,10 @@ function AdminListContent() {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                const newAdminFromApi = data.admin;
-                // console.log("API Response Data:", data);
-
-                // Map to frontend interface
-                const newAdmin: Admin = {
-                    id: newAdminFromApi.id.toString(),
-                    firstName: submitData.firstName,
-                    lastName: submitData.lastName,
-                    email: newAdminFromApi.email,
-                    phoneNumber: newAdminFromApi.mobile || submitData.phoneNumber,
-                    role: newAdminFromApi.role || submitData.role,
-                    status: newAdminFromApi.status ? "active" : "inactive",
-                    lastLoginIp: modalType === 'edit' && selectedAdmin ? selectedAdmin.lastLoginIp : "N/A",
-                    lastLogin: modalType === 'edit' && selectedAdmin ? selectedAdmin.lastLogin : "Never",
-                    createdAt: newAdminFromApi.created_at || new Date().toISOString(),
-                    avatar: ((newAdminFromApi.first_name?.[0] || '') + (newAdminFromApi.last_name?.[0] || '')).toUpperCase(),
-                    twoFactorEnabled: newAdminFromApi.two_factor_enabled || submitData.twoFactorEnabled,
-                };
-                // console.log("Mapped Frontend Admin Object:", newAdmin);
-
+                await fetchAdmins(false);
                 if (modalType === "create") {
-                    setAdmins(prev => [newAdmin, ...prev]);
                     toast.success("User created successfully!");
                 } else {
-                    setAdmins(prev => prev.map(a => a.id === newAdmin.id ? newAdmin : a));
                     toast.success("User updated successfully!");
                 }
 
@@ -601,7 +580,7 @@ function AdminListContent() {
     };
     const handleDeleteAdmin = async () => {
         if (!selectedAdmin) return;
-        setIsLoading(true);
+
         try {
             const res = await adminFetch("/api/admin/staff/delete", {
                 method: "DELETE",
@@ -612,7 +591,7 @@ function AdminListContent() {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                setAdmins(prev => prev.filter((a) => String(a.id) !== String(selectedAdmin.id)));
+                await fetchAdmins(false);
                 toast.success("User deleted successfully!");
                 closeModal();
             } else {
@@ -621,8 +600,6 @@ function AdminListContent() {
         } catch (error) {
             console.error("Failed to delete admin:", error);
             toast.error("Something went wrong. Please try again.");
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -828,7 +805,7 @@ function AdminListContent() {
                                                     <span className="text-white/90 text-xs tracking-wide">
                                                         {admin.lastLogin && admin.lastLogin !== "Never"
                                                             ? `${format(new Date(admin.lastLogin), "dd MMM yyyy, h:mm:ss a")} | `
-                                                            : "Never"}
+                                                            : "Never | "}
                                                     </span>
                                                     <span className="text-gray-400/80 text-xs">{getRelativeTime(admin.lastLogin)}</span>
                                                 </span>
@@ -1156,7 +1133,7 @@ function AdminListContent() {
                                     </div>
                                 </div>
                                 {/* Toggle Switch */}
-                                {modalType === "create" ? (
+                                {/* {modalType === "create" ? (
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -1168,29 +1145,29 @@ function AdminListContent() {
                                             }
                                         }}
                                         className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${formData.twoFactorEnabled
-                                                ? "bg-emerald-500"
-                                                : "bg-white/[0.1]"
+                                            ? "bg-emerald-500"
+                                            : "bg-white/[0.1]"
                                             }`}
                                         aria-pressed={formData.twoFactorEnabled}
                                     >
                                         <span
                                             className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ${formData.twoFactorEnabled
-                                                    ? "translate-x-5"
-                                                    : "translate-x-0"
+                                                ? "translate-x-5"
+                                                : "translate-x-0"
                                                 }`}
                                         />
                                     </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, twoFactorEnabled: !formData.twoFactorEnabled })}
-                                        className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${formData.twoFactorEnabled ? "bg-emerald-500" : "bg-white/[0.1]"
-                                            }`}
-                                        aria-pressed={formData.twoFactorEnabled}>
-                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ${formData.twoFactorEnabled ? "translate-x-5" : "translate-x-0"
-                                            }`} />
-                                    </button>
-                                )}
+                                ) : ( */}
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, twoFactorEnabled: !formData.twoFactorEnabled })}
+                                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${formData.twoFactorEnabled ? "bg-emerald-500" : "bg-white/[0.1]"
+                                        }`}
+                                    aria-pressed={formData.twoFactorEnabled}>
+                                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ${formData.twoFactorEnabled ? "translate-x-5" : "translate-x-0"
+                                        }`} />
+                                </button>
+                                {/* )} */}
                             </div>
                         </div>
 

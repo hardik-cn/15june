@@ -7,6 +7,7 @@ import { decrypt } from "@/lib/securePassword";
 import { countryNameToISO } from "@/lib/countryCode";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 import { sendSlackNotification } from "@/lib/slack/admin/kyc/approved/sendSlackNotification";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function POST(req: Request) {
     // =============================
@@ -145,7 +146,8 @@ export async function POST(req: Request) {
         where: { id: onboarding.id },
         data: {
             whmcsClientId,
-            status: "completed"
+            status: "completed",
+            updatedAt: getISTDateWithOffset(0),
         },
     });
 

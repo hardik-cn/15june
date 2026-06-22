@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function POST(req: Request) {
     try {
@@ -52,6 +53,8 @@ export async function POST(req: Request) {
                 userId: dbUser.id,
                 whmcsClientId: null,
                 status: "pending",
+                createdAt: getISTDateWithOffset(0),
+                updatedAt: getISTDateWithOffset(0),
             },
         });
 

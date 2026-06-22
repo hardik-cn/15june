@@ -97,34 +97,13 @@ async function doRefresh(): Promise<string | null> {
 }
 
 export async function adminFetch(url: string, options: AdminFetchOptions = {}) {
-    // =============================
-    // STEP 1: FETCH CSRF TOKEN
-    // =============================
-    const csrfToken = await getCSRFToken();
-
-    // =============================
-    // STEP 2: DETERMINE REQUEST TYPE
-    // =============================
     const isInternal = url.startsWith("/") || (typeof window !== "undefined" && url.startsWith(window.location.origin));
-
     const headers = new Headers(options.headers || {});
+    const csrfMethods = ["POST", "PUT", "PATCH", "DELETE"];
+    const needsCSRF = csrfMethods.includes((options.method || "GET").toUpperCase());
 
     // =============================
-    // STEP 3: ADD CSRF TOKEN
-    // =============================
-    const csrfMethods = [
-        "POST",
-        "PUT",
-        "PATCH",
-        "DELETE",
-    ];
-
-    if (csrfToken && csrfMethods.includes((options.method || "GET").toUpperCase())) {
-        headers.set("X-CSRF-Token", csrfToken);
-    }
-
-    // =============================
-    // STEP 4: SET CONTENT TYPE
+    // STEP 1: SET CONTENT TYPE
     // =============================
     if (options.body && typeof options.body === "object" && !(options.body instanceof FormData)) {
         if (!headers.has("Content-Type")) {
@@ -133,40 +112,36 @@ export async function adminFetch(url: string, options: AdminFetchOptions = {}) {
     }
 
     // =============================
-    // STEP 5: GET ACCESS TOKEN
+    // STEP 2: GET ACCESS TOKEN (refresh BEFORE csrf is read)
     // =============================
     let token = getAccessToken();
-
-    // =============================
-    // STEP 6: REFRESH TOKEN IF MISSING
-    // =============================
     if (!token && isInternal && !options.skipAuth) {
         if (!refreshPromise) {
             refreshPromise = doRefresh().finally(() => {
                 refreshPromise = null;
             });
         }
-
         token = await refreshPromise;
     }
-
-    // =============================
-    // STEP 7: ATTACH AUTHORIZATION HEADER
-    // =============================
     if (token && isInternal && !options.skipAuth) {
         headers.set("Authorization", `Bearer ${token}`);
     }
 
     // =============================
-    // STEP 8: SEND REQUEST
+    // STEP 3: FETCH CSRF TOKEN — *after* any refresh, right before send
     // =============================
-    let response = await fetch(url, {
-        ...options,
-        headers,
-    });
+    if (needsCSRF) {
+        const csrfToken = await getCSRFToken();
+        if (csrfToken) headers.set("X-CSRF-Token", csrfToken);
+    }
 
     // =============================
-    // STEP 9: HANDLE 401 RESPONSE
+    // STEP 4: SEND REQUEST
+    // =============================
+    let response = await fetch(url, { ...options, headers });
+
+    // =============================
+    // STEP 5: HANDLE 401 — refresh AND re-fetch csrf before retry
     // =============================
     if (response.status === 401 && isInternal && !options.skipAuth) {
         if (!refreshPromise) {
@@ -174,26 +149,20 @@ export async function adminFetch(url: string, options: AdminFetchOptions = {}) {
                 refreshPromise = null;
             });
         }
-
         const newToken = await refreshPromise;
 
-        // =============================
-        // STEP 10: RETRY WITH NEW TOKEN
-        // =============================
         if (newToken) {
             const retryHeaders = new Headers(headers);
-
             retryHeaders.set("Authorization", `Bearer ${newToken}`);
 
-            response = await fetch(url, {
-                ...options,
-                headers: retryHeaders,
-            });
+            if (needsCSRF) {
+                const freshCsrf = await getCSRFToken(); // re-fetch, refresh may have rotated it
+                if (freshCsrf) retryHeaders.set("X-CSRF-Token", freshCsrf);
+            }
+
+            response = await fetch(url, { ...options, headers: retryHeaders });
         }
     }
 
-    // =============================
-    // STEP 11: RETURN RESPONSE
-    // =============================
     return response;
 }

@@ -9,6 +9,7 @@ import { validateUploadFile, validateFileSignature } from "@/lib/validators/vali
 import { sendTemplateEmail } from "@/lib/emails/sendTemplateEmail";
 import { sendKycSlackNotification } from "@/lib/slack/sendKycSlackNotification";
 import { z } from "zod";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 const onboardingSubmitSchema = z.object({
     accountType: z.string().min(1, "Account type is required"),
@@ -198,6 +199,9 @@ export async function POST(req: Request) {
                 internationalVerified: !!internationalVerified,
                 representativeName: representativeName || null,
                 status: "pending",
+                createdAt: getISTDateWithOffset(0),
+                updatedAt: getISTDateWithOffset(0),
+
             },
 
             create: {
@@ -226,6 +230,8 @@ export async function POST(req: Request) {
                 internationalVerified: !!internationalVerified,
                 representativeName: representativeName || null,
                 status: "pending",
+                createdAt: getISTDateWithOffset(0),
+                updatedAt: getISTDateWithOffset(0),
             },
         });
 
@@ -237,11 +243,12 @@ export async function POST(req: Request) {
             countryCode: user.countryCode,
             accountType,
             country,
-            companyName,
+            companyName: companyName ?? null,
+            postalCode: postalCode ?? null,
+            streetAddress: streetAddress ?? null,
+            city: city ?? null,
             businessType,
-            currency:
-                billingCurrency ||
-                (country === "India" ? "INR" : "USD"),
+            currency: billingCurrency || (country === "India" ? "INR" : "USD"),
         });
 
         // ── Save uploaded business documents ─────────────────────────────────
@@ -293,14 +300,20 @@ export async function POST(req: Request) {
                 userId: user.id,
                 kycProfileId: null,
             },
-            data: { kycProfileId: kycProfile.id },
+            data: {
+                kycProfileId: kycProfile.id,
+                updatedAt: getISTDateWithOffset(0),
+            },
         });
 
         // ── Update onboarding status to completed ───────────────────────────
         try {
             await db.onboarding.update({
                 where: { userId: user.id },
-                data: { status: "completed" },
+                data: {
+                    status: "completed",
+                    updatedAt: getISTDateWithOffset(0),
+                },
             });
         } catch (onboardingError) {
             console.error("Failed to update onboarding status:", onboardingError);

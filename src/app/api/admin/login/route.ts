@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { nanoid } from "nanoid";
 import { cookies } from "next/headers";
+import jwt from "jsonwebtoken";
+import * as OTPAuth from "otpauth";
 import { db } from "@/lib/db";
 import { createAccessToken, createRefreshToken } from "@/lib/auth/tokens";
 import { parseDeviceInfo } from "@/lib/admin/device";
@@ -88,6 +90,7 @@ export async function POST(req: Request) {
                 status: true,
                 two_factor_enabled: true,
                 two_factor_secret: true,
+                two_factor_configured: true,
             },
         });
 
@@ -112,31 +115,33 @@ export async function POST(req: Request) {
         // =============================
         // STEP 5: HANDLE 2FA FLOW
         // =============================
-        const hasSecret = !!admin.two_factor_secret;
+        if (admin.two_factor_enabled) {
+            let secret = admin.two_factor_secret;
+            const isFirstTimeSetup = !admin.two_factor_configured;
 
-        if (hasSecret) {
-            const isFirstTimeSetup = !admin.two_factor_enabled;
+            if (isFirstTimeSetup && !secret) {
+                const otpSecret = new OTPAuth.Secret({ size: 20 });
+                secret = otpSecret.base32;
+            }
 
-            // Store temporary authentication state
-            // until OTP verification is completed.
-            cookieStore.set("2fa_temp_session", JSON.stringify({ id: admin.id, email: admin.email, isFirstTimeSetup, }), {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-                path: "/",
-                maxAge: 60 * 5, // 5 minutes
-            });
+            // Generate a temporary JWT token for the 2FA verification step
+            const tempToken = jwt.sign(
+                { id: admin.id, email: admin.email, isFirstTimeSetup, tempSecret: isFirstTimeSetup ? secret : undefined },
+                process.env.ACCESS_TOKEN_SECRET || "default_secret",
+                { expiresIn: "5m" }
+            );
 
             // First login after 2FA setup
             if (isFirstTimeSetup) {
-                const otpauthUrl = `otpauth://totp/Cantech:${admin.email}?secret=${admin.two_factor_secret}&issuer=Cantech&algorithm=SHA1&digits=6&period=30`;
+                const otpauthUrl = `otpauth://totp/Cantech:${admin.email}?secret=${secret}&issuer=Cantech&algorithm=SHA1&digits=6&period=30`;
 
                 return NextResponse.json({
                     success: true,
                     requires2FA: true,
                     requiresSetup: true,
-                    secret: admin.two_factor_secret,
-                    otpauthUrl
+                    secret: secret,
+                    otpauthUrl,
+                    tempToken
                 });
             }
 
@@ -144,7 +149,8 @@ export async function POST(req: Request) {
             return NextResponse.json({
                 success: true,
                 requires2FA: true,
-                requiresSetup: false
+                requiresSetup: false,
+                tempToken
             });
         }
 

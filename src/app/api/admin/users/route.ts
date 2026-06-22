@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function PUT(request: Request) {
     try {
@@ -77,6 +78,7 @@ export async function PUT(request: Request) {
                 email,
                 phone: finalPhone,
                 ActiveStatus: parsedActiveStatus,
+                updatedAt: getISTDateWithOffset(0),
             },
             select: {
                 id: true,
@@ -159,8 +161,8 @@ export async function GET(request: Request) {
             phone: `${user.countryCode} ${user.phone}`,
             // status: user.isEmailVerified ? "active" : "inactive",
             ActiveStatus: user.ActiveStatus,
-            createdAt: user.createdAt.toISOString().replace("T", " ").slice(0, 16),
-            updatedAt: user.updatedAt.toISOString().replace("T", " ").slice(0, 16),
+            createdAt: user.createdAt.toISOString().replace("T", " ").slice(0, 19),
+            updatedAt: user.updatedAt.toISOString().replace("T", " ").slice(0, 19),
             avatar: `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
         }));
 
@@ -227,6 +229,7 @@ export async function DELETE(request: Request) {
             data: {
                 LastStatus: existingUser.ActiveStatus,
                 ActiveStatus: 3,
+                updatedAt: getISTDateWithOffset(0),
             },
         });
 
@@ -305,6 +308,7 @@ export async function PATCH(request: Request) {
             data: {
                 ActiveStatus: restoreStatus,
                 LastStatus: null,
+                updatedAt: getISTDateWithOffset(0),
             },
         });
 

@@ -267,7 +267,7 @@ export default function App() {
 
                 <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-12">
-                        <Image src="/logo/cantech-logo.svg" alt="Logo" width={130} height={55} />
+                        <Image src="/logo/cantech-logo.svg" alt="Logo" width={158} height={45} priority />
                     </div>
 
                     <h1 className="text-3xl lg:text-5xl font-extrabold leading-tight mb-8">

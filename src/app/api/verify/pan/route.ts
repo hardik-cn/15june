@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cashfreeClient } from "@/lib/cashfree";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function POST(req: Request) {
     try {
@@ -43,7 +44,8 @@ export async function POST(req: Request) {
             update: {
                 verificationStatus: isSuccess ? "success" : "failed",
                 extractedData: result,
-                verifiedAt: isSuccess ? new Date() : null,
+                verifiedAt: isSuccess ? getISTDateWithOffset(0) : null,
+                updatedAt: getISTDateWithOffset(0),
             },
 
             create: {
@@ -52,7 +54,9 @@ export async function POST(req: Request) {
                 cashfreeRefId,
                 verificationStatus: isSuccess ? "success" : "failed",
                 extractedData: result,
-                verifiedAt: isSuccess ? new Date() : null,
+                verifiedAt: isSuccess ? getISTDateWithOffset(0) : null,
+                createdAt: getISTDateWithOffset(0),
+                updatedAt: getISTDateWithOffset(0),
             },
         });
 

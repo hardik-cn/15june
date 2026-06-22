@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 import { logAdminActivity } from "@/lib/admin/logAdminActivity";
 import { parseDeviceInfo } from "@/lib/admin/device";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function PUT(req: Request) {
     try {
@@ -74,7 +75,8 @@ export async function PUT(req: Request) {
             mobile: phoneNumber,
             role,
             status: typeof status === "number" ? status : status === "active" || status === true ? 1 : 0,
-            two_factor_enabled: twoFactorEnabled === true
+            two_factor_enabled: twoFactorEnabled === true,
+            updated_at: getISTDateWithOffset(0)
         };
 
         // =============================
@@ -241,6 +243,7 @@ export async function PATCH(req: Request) {
             data: {
                 status: restoreStatus,
                 LastStatus: null,
+                updated_at: getISTDateWithOffset(0)
             },
         });
 

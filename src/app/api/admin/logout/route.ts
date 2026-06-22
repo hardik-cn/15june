@@ -49,7 +49,7 @@ export async function POST(req: Request) {
         // =============================
         cookieStore.delete("admin_refresh_token");
         cookieStore.delete("csrf_token");
-        cookieStore.delete("2fa_temp_session");
+        // cookieStore.delete("2fa_temp_session");
 
         // =============================
         // STEP 4: LOG LOGOUT ACTIVITY

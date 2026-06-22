@@ -323,8 +323,10 @@ export default function ApprovedKYCClient() {
                                     </td>
 
                                     {/* Approved */}
-                                    <td className="py-4 px-6 hidden lg:table-cell text-white/50 text-sm">
-                                        {kyc.approvedAt}
+                                    <td className="py-4 px-6 hidden lg:table-cell text-white/60 text-xs tracking-wide">
+                                        {kyc.approvedAt
+                                            ? format(new Date(kyc.approvedAt), "dd MMM yyyy, h:mm:ss a")
+                                            : "N/A"}
                                     </td>
 
                                     {/* Actions */}

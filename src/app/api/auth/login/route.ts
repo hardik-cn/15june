@@ -14,6 +14,7 @@ import { logUserActivityFromRequest } from "@/lib/userActivityLog";
 import { getLoginLocation } from "@/lib/security/getLocation";
 import { countryCodes } from "@/lib/countries";
 import { checkLoginRateLimit, recordFailedLogin, clearLoginAttempts } from "@/lib/security/loginRateLimit";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function POST(req: Request) {
 
@@ -123,6 +124,7 @@ export async function POST(req: Request) {
                         uuid: uuidv4(),
                         whmcsClientId: whmcsUser.clientId,
                         status: "completed",
+                        updatedAt: getISTDateWithOffset(0),
                     },
                 });
 

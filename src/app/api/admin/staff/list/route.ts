@@ -45,6 +45,7 @@ export async function GET(req: Request) {
                 last_login_ip: true,
                 last_login_at: true,
                 two_factor_enabled: true,
+                two_factor_secret: true,
                 created_at: true,
                 updated_at: true
             }

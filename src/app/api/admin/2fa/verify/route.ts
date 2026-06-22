@@ -1,9 +1,10 @@
 // src/app/api/admin/2fa/verify/route.ts
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { cookies } from "next/headers";
+import { db } from "@/lib/db";
 import * as OTPAuth from "otpauth";
+import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { nanoid } from "nanoid";
 import { createAccessToken, createRefreshToken } from "@/lib/auth/tokens";
@@ -29,46 +30,51 @@ export async function POST(req: Request) {
 
         const { userAgent, ipAddress, device, browser } = getClientInfo(req);
 
-        const { code } = await req.json();
+        const { code, tempToken } = await req.json();
         if (!code || code.length !== 6) {
             return NextResponse.json({ success: false, error: "A 6-digit OTP code is required." }, { status: 400 });
         }
         // =============================
         // STEP 2: VALIDATE TEMP SESSION
         // =============================
-        const cookieStore = await cookies();
-        const tempSession = cookieStore.get("2fa_temp_session");
-
-        if (!tempSession) {
+        if (!tempToken) {
             return NextResponse.json({ success: false, error: "Session expired. Please login again." }, { status: 401 });
         }
 
-        const sessionData = JSON.parse(tempSession.value) as { id: number; email: string; isFirstTimeSetup: boolean; };
+        let sessionData: any;
+        try {
+            sessionData = jwt.verify(tempToken, process.env.ACCESS_TOKEN_SECRET || "default_secret");
+        } catch (err) {
+            return NextResponse.json({ success: false, error: "Session invalid or expired. Please login again." }, { status: 401 });
+        }
+
         const id = Number(sessionData.id);
         const isFirstTimeSetup = sessionData.isFirstTimeSetup ?? false;
+        const tempSecret = sessionData.tempSecret;
 
         // =============================
         // STEP 3: FETCH ADMIN ACCOUNT
         // =============================
-        const admin =
-            await db.superAdmin.findUnique({
-                where: { id },
-                select: {
-                    id: true,
-                    first_name: true,
-                    last_name: true,
-                    email: true,
-                    role: true,
-                    two_factor_secret: true,
-                    two_factor_enabled: true,
-                },
-            });
+        const admin = await db.superAdmin.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                email: true,
+                role: true,
+                two_factor_secret: true,
+                two_factor_enabled: true,
+            },
+        });
 
         if (!admin) {
             return NextResponse.json({ success: false, error: "Admin not found." }, { status: 404 });
         }
 
-        if (!admin.two_factor_secret) {
+        const secretToVerify = isFirstTimeSetup ? tempSecret : admin.two_factor_secret;
+
+        if (!secretToVerify) {
             return NextResponse.json({ success: false, error: "2FA is not configured for this account." }, { status: 400 });
         }
 
@@ -76,7 +82,7 @@ export async function POST(req: Request) {
         // STEP 4: VERIFY TOTP CODE
         // =============================
         const totp = new OTPAuth.TOTP({
-            secret: OTPAuth.Secret.fromBase32(admin.two_factor_secret),
+            secret: OTPAuth.Secret.fromBase32(secretToVerify),
             algorithm: "SHA1",
             digits: 6,
             period: 30,
@@ -97,13 +103,15 @@ export async function POST(req: Request) {
                 last_login_at: getISTDateWithOffset(0),
                 last_login_ip: ipAddress,
                 two_factor_enabled: true,
+                two_factor_configured: true,
+                ...(isFirstTimeSetup && secretToVerify ? { two_factor_secret: secretToVerify } : {}),
             },
         });
 
         // =============================
         // STEP 6: CLEAR TEMP SESSION
         // =============================
-        cookieStore.delete("2fa_temp_session");
+        // cookieStore.delete("2fa_temp_session");
 
         // =============================
         // STEP 7: GENERATE AUTH TOKENS
@@ -132,6 +140,7 @@ export async function POST(req: Request) {
         // =============================
         // STEP 9: SET REFRESH TOKEN COOKIE
         // =============================
+        const cookieStore = await cookies();
         cookieStore.set("admin_refresh_token", refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",

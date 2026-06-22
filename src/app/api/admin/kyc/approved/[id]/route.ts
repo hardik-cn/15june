@@ -132,7 +132,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             cinVerified: kycProfile.cinVerified,
             aadharVerified: kycProfile.aadharVerified,
 
-            createdAt: kycProfile.createdAt.toISOString(),
+            createdAt: kycProfile.createdAt.toISOString().replace("T", " ").substring(0, 19),
 
             status: kycProfile.status,
 
@@ -144,7 +144,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
             approvedBy: kycProfile.approvedBy,
 
-            approvedAt: kycProfile.approvedAt?.toISOString() ?? null,
+            approvedAt: kycProfile.approvedAt?.toISOString().replace("T", " ").substring(0, 19) ?? null,
 
             internationalVerified: kycProfile.internationalVerified,
 

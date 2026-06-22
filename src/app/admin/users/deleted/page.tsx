@@ -20,6 +20,38 @@ interface DeletedUser {
     avatar: string;
 }
 
+const getRelativeTime = (dateString?: string | null): string => {
+    if (!dateString) return "N/A";
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
+
+    const diffInSeconds = Math.floor((date.getTime() - Date.now()) / 1000);
+    const abs = Math.abs(diffInSeconds);
+
+    if (abs < 60) return "Just now";
+
+    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+    const units = [
+        { unit: "year", sec: 31536000 },
+        { unit: "month", sec: 2592000 },
+        { unit: "week", sec: 604800 },
+        { unit: "day", sec: 86400 },
+        { unit: "hour", sec: 3600 },
+        { unit: "minute", sec: 60 },
+    ] as const;
+
+    for (const { unit, sec } of units) {
+        if (abs >= sec) {
+            const value = Math.floor(diffInSeconds / sec);
+            return rtf.format(value, unit);
+        }
+    }
+
+    return "Just now";
+};
+
 const Modal = ({
     isOpen,
     onClose,
@@ -321,7 +353,8 @@ function DeletedUsersContent() {
                                             </td>
                                             <td className="py-4 px-6 hidden lg:table-cell">
                                                 <div className="flex flex-col">
-                                                    <span className="text-white/90 text-sm">{format(new Date(user.updatedAt), "dd MMM yyyy, h:mm a")}</span>
+                                                    <span className="text-white/90 text-sm mb-1">{format(new Date(user.updatedAt), "dd MMM yyyy, h:mm:ss a")}</span>
+                                                    <span className="text-white/40 text-sm">{getRelativeTime(user.updatedAt)}</span>
                                                 </div>
                                             </td>
                                             {canEdit && (

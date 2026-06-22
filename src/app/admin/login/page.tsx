@@ -23,10 +23,10 @@ export default function AdminLoginPage() {
     const [formData, setFormData] = useState({ email: "", password: "" });
     const [errors, setErrors] = useState<FormErrors>({ email: "", password: "", general: "" });
 
-    // 2FA state
     const [setupSecret, setSetupSecret] = useState("");
     const [otpauthUrl, setOtpauthUrl] = useState("");
     const [twoFactorCode, setTwoFactorCode] = useState("");
+    const [tempToken, setTempToken] = useState("");
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = { email: "", password: "", general: "" };
@@ -80,18 +80,17 @@ export default function AdminLoginPage() {
             if (data.requires2FA) {
                 if (data.requiresSetup) {
                     // New user: must set up 2FA first
-                    // console.log("[Login] → Setup 2FA required. Secret:", data.secret);
-                    // console.log("[Login] → OTPAuth URL:", data.otpauthUrl);
                     setSetupSecret(data.secret);
                     setOtpauthUrl(data.otpauthUrl);
                     setTwoFactorCode("");
+                    if (data.tempToken) setTempToken(data.tempToken);
                     setStep("setup-2fa");
 
                     toast.success("Set up your 2FA authenticator app to continue.");
                 } else {
                     // Existing user: just verify OTP
-                    // console.log("[Login] → 2FA verification required.");
                     setTwoFactorCode("");
+                    if (data.tempToken) setTempToken(data.tempToken);
                     setStep("verify-2fa");
                     toast.success("Enter your 2FA code to continue.");
                 }
@@ -119,7 +118,7 @@ export default function AdminLoginPage() {
             const res = await fetch("/api/admin/2fa/verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code: twoFactorCode }),
+                body: JSON.stringify({ code: twoFactorCode, tempToken }),
             });
 
             const data = await res.json();
@@ -148,6 +147,7 @@ export default function AdminLoginPage() {
         setTwoFactorCode("");
         setSetupSecret("");
         setOtpauthUrl("");
+        setTempToken("");
         setErrors({ email: "", password: "", general: "" });
     };
 

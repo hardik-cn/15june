@@ -52,7 +52,7 @@ export async function GET(request: Request) {
                 countryCode: profile.user?.countryCode || "",
                 createdAt: profile.createdAt ? profile.createdAt.toISOString() : null,
                 status: profile.status,
-                approvedAt: profile.approvedAt ? profile.approvedAt.toISOString() : null,
+                approvedAt: profile.approvedAt ? profile.approvedAt.toISOString().replace("T", " ").substring(0, 19) : null,
                 approvedBy: profile.approvedBy || null,
                 internationalVerified: profile.internationalVerified || false,
                 submittedAt: profile.createdAt ? profile.createdAt.toISOString().replace("T", " ").substring(0, 16) : "",

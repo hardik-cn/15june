@@ -31,31 +31,32 @@ interface User {
 // };
 
 // Helper function to get relative time (e.g., "4 months ago")
-const getRelativeTime = (dateString: string | undefined | null): string => {
+const getRelativeTime = (dateString?: string | null): string => {
     if (!dateString) return "N/A";
 
-    const date = new Date(dateString.replace(" ", "T"));
-    const now = new Date();
-    const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000);
-    const absDiff = Math.abs(diffInSeconds);
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
 
-    if (absDiff < 60) return "Just now";
+    const diffInSeconds = Math.floor((date.getTime() - Date.now()) / 1000);
+    const abs = Math.abs(diffInSeconds);
 
-    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "always" });
+    if (abs < 60) return "Just now";
 
-    const intervals = [
-        { unit: "year", seconds: 31536000 },
-        { unit: "month", seconds: 2592000 },
-        { unit: "week", seconds: 604800 },
-        { unit: "day", seconds: 86400 },
-        { unit: "hour", seconds: 3600 },
-        { unit: "minute", seconds: 60 },
+    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+    const units = [
+        { unit: "year", sec: 31536000 },
+        { unit: "month", sec: 2592000 },
+        { unit: "week", sec: 604800 },
+        { unit: "day", sec: 86400 },
+        { unit: "hour", sec: 3600 },
+        { unit: "minute", sec: 60 },
     ] as const;
 
-    for (const { unit, seconds } of intervals) {
-        if (absDiff >= seconds) {
-            const count = Math.ceil(diffInSeconds / seconds);
-            return rtf.format(count, unit);
+    for (const { unit, sec } of units) {
+        if (abs >= sec) {
+            const value = Math.floor(diffInSeconds / sec);
+            return rtf.format(value, unit);
         }
     }
 
@@ -237,6 +238,25 @@ function UserListContent() {
     const [saveLoading, setSaveLoading] = useState(false);
     const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
+    const fetchUsers = async (showLoading = true) => {
+        try {
+            if (showLoading) setLoading(true);
+            const response = await adminFetch("/api/admin/users");
+            const data = await response.json();
+
+            if (data.success) {
+                setUsers(data.data);
+            } else {
+                setError(data.error || "Failed to fetch users");
+            }
+        } catch (err) {
+            setError("Failed to fetch users");
+            console.error("Error fetching users:", err);
+        } finally {
+            if (showLoading) setLoading(false);
+        }
+    };
+
     // Initialize edit form when selectedUser changes
     useEffect(() => {
         if (selectedUser && modalType === "edit") {
@@ -322,28 +342,7 @@ function UserListContent() {
             const data = await response.json();
 
             if (data.success) {
-                // Update the user in the local state
-                // setUsers(prevUsers =>
-                //     prevUsers.map(user =>
-                //         user.id === selectedUser.id ? data.data : user
-                //     )
-                // );
-                // setSelectedUser(null);
-                // setModalType(null);
-                // toast.success("User updated successfully!");
-                setUsers(prevUsers =>
-                    prevUsers.map(u =>
-                        u.id === selectedUser.id
-                            ? {
-                                ...u,
-                                firstName: editFirstName,
-                                lastName: editLastName,
-                                ActiveStatus: editStatus === "active" ? 1 : 2,
-                                updatedAt: new Date().toISOString(),
-                            }
-                            : u
-                    )
-                );
+                await fetchUsers(false);
                 setSelectedUser(null);
                 setModalType(null);
                 toast.success("User updated successfully!");
@@ -371,8 +370,7 @@ function UserListContent() {
             const data = await response.json();
 
             if (data.success) {
-                // Update local state to reflect deletion locally (status 3) without refresh
-                setUsers(prevUsers => prevUsers.map(u => u.id === selectedUser.id ? { ...u, ActiveStatus: 3 } : u));
+                await fetchUsers(false);
                 setSelectedUser(null);
                 setModalType(null);
                 toast.success("User deleted successfully!");
@@ -393,26 +391,7 @@ function UserListContent() {
         if (hasFetched.current) return;
         hasFetched.current = true;
 
-        const fetchUsers = async () => {
-            try {
-                setLoading(true);
-                const response = await adminFetch("/api/admin/users");
-                const data = await response.json();
-
-                if (data.success) {
-                    setUsers(data.data);
-                } else {
-                    setError(data.error || "Failed to fetch users");
-                }
-            } catch (err) {
-                setError("Failed to fetch users");
-                console.error("Error fetching users:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUsers();
+        fetchUsers(true);
     }, []);
 
     const filteredData = users.filter((item) =>
@@ -576,7 +555,7 @@ function UserListContent() {
                                     </td> */}
                                     <td className="py-4 px-6 hidden lg:table-cell">
                                         <div className="flex flex-col">
-                                            <span className="text-white/90 text-sm">{format(new Date(user.createdAt), "dd MMM yyyy, h:mm:ss a")}</span>
+                                            <span className="text-white/90 text-sm mb-1">{format(new Date(user.createdAt), "dd MMM yyyy, h:mm:ss a")}</span>
                                             <span className="text-white/40 text-sm">{getRelativeTime(user.createdAt)}</span>
                                         </div>
                                     </td>
@@ -662,7 +641,7 @@ function UserListContent() {
                                 </div>
                                 <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                                     <p className="text-white/40 text-sm tracking-wider mb-1">Last Updated</p>
-                                    <p className="text-white/90 font-medium">{getRelativeTime(selectedUser.updatedAt)}</p>
+                                    <p className="text-white/90 font-medium">{format(new Date(selectedUser.updatedAt), "dd MMM yyyy, h:mm:ss a")}</p>
                                 </div>
                             </div>
                         ) : (
@@ -674,7 +653,7 @@ function UserListContent() {
                                     </div>
                                     <div className="pb-4">
                                         <p className="text-white/80 text-sm">Account details updated</p>
-                                        <p className="text-white/40 text-xs mt-0.5">{getRelativeTime(selectedUser.updatedAt)}</p>
+                                        {/* <p className="text-white/40 text-xs mt-0.5">{getRelativeTime(selectedUser.updatedAt)}</p> */}
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
@@ -683,7 +662,7 @@ function UserListContent() {
                                     </div>
                                     <div>
                                         <p className="text-white/80 text-sm">User account created</p>
-                                        <p className="text-white/40 text-xs mt-0.5">{format(new Date(selectedUser.createdAt), "dd MMM yyyy, h:mm a")}</p>
+                                        <p className="text-white/40 text-xs mt-0.5">{format(new Date(selectedUser.createdAt), "dd MMM yyyy, h:mm:ss a")}</p>
                                     </div>
                                 </div>
                             </div>

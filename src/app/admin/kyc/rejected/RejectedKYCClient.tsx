@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { adminFetch } from "@/lib/admin/adminFetch";
 import { encodeId } from "@/lib/admin/encodeId";
 import { List } from "lucide-react";
+import { format } from "date-fns";
 
 interface EmailTemplate {
     id: number;
@@ -24,6 +25,7 @@ interface KYCRecord {
     lastName: string;
     email: string;
     phone: string;
+    countryCode: string;
     rejectedAt: string;
     rawRejectedAt: string | null;
     rejectedBy: string;
@@ -304,7 +306,7 @@ export default function RejectedKYCClient() {
                                     <td className="py-4 px-6 hidden md:table-cell">
                                         <div className="flex flex-col max-w-[200px]">
                                             <p className="text-white/70 truncate">{kyc.email}</p>
-                                            <p className="text-white/40 text-sm font-light mt-0.5">{kyc.phone}</p>
+                                            <p className="text-white/40 text-sm font-light mt-0.5">{kyc.countryCode} {kyc.phone}</p>
                                         </div>
                                     </td>
 
@@ -344,7 +346,11 @@ export default function RejectedKYCClient() {
                                     </td> */}
 
                                     {/* Rejected At */}
-                                    <td className="py-4 px-6 text-white/50 text-sm">{kyc.rejectedAt}</td>
+                                    <td className="py-4 px-6 text-white/60 text-xs tracking-wide">
+                                        {kyc.rejectedAt
+                                            ? format(new Date(kyc.rejectedAt), "dd MMM yyyy, h:mm:ss a")
+                                            : "N/A"}
+                                    </td>
 
                                     {/* Actions */}
                                     <td className="py-4 px-6">

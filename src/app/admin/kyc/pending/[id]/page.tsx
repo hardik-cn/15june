@@ -12,6 +12,7 @@ import { getBusinessTypeLabel } from "@/lib/business-types";
 import { KYC_TAB_ORDER, KYC_TAB_LABELS, getVerificationLabel } from "@/lib/admin/verification-constants";
 import { toast } from "sonner";
 import { encodeId } from "@/lib/admin/encodeId";
+import { format } from "date-fns";
 
 const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) => {
     if (!isOpen) return null;
@@ -1093,15 +1094,24 @@ function KYCDetailsContent() {
                                                             <div className="pt-3 border-t border-white/[0.05] grid grid-cols-2 gap-4 text-xs">
                                                                 <div className="inline-flex items-center gap-2 align-center">
                                                                     <p className="text-xs font-semibold text-white/40 tracking-wider">Verified At:</p>
-                                                                    <p className="text-white/90">{
-                                                                        new Date(doc.createdAt).toLocaleString("en-US", {
-                                                                            month: "short",
-                                                                            day: "2-digit",
-                                                                            year: "numeric",
-                                                                            hour: "2-digit",
-                                                                            minute: "2-digit",
-                                                                            second: "2-digit",
-                                                                        })}</p>
+                                                                    {doc.verifiedAt ? (
+                                                                        <p className="text-white/90">
+                                                                            {
+                                                                                new Date(doc.verifiedAt).toLocaleString("en-GB", {
+                                                                                    timeZone: "UTC",
+                                                                                    day: "2-digit",
+                                                                                    month: "short",
+                                                                                    year: "numeric",
+                                                                                    hour: "2-digit",
+                                                                                    minute: "2-digit",
+                                                                                    second: "2-digit",
+                                                                                    hour12: true,
+                                                                                }).replace("am", "AM").replace("pm", "PM")
+                                                                            }
+                                                                        </p>
+                                                                    ) : (
+                                                                        <p className="text-white/50">-</p>
+                                                                    )}
                                                                 </div>
                                                                 {doc.verificationStatus === 'success' && (
                                                                     <div className="text-right">

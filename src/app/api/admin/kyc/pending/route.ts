@@ -126,7 +126,7 @@ export async function GET(request: Request) {
                 phone: profile.user?.phone,
                 countryCode: profile.user?.countryCode || "",
 
-                createdAt: profile.createdAt ? profile.createdAt.toISOString() : null,
+                createdAt: profile.createdAt ? profile.createdAt.toISOString().replace("T", " ").substring(0, 19) : null,
 
                 status: (() => {
                     const s = latestDigilockerByUser.find((doc) => doc.userId === profile.userId)?.verificationStatus ??
@@ -147,7 +147,7 @@ export async function GET(request: Request) {
 
                 internationalVerified: profile.internationalVerified || false,
 
-                submittedAt: profile.createdAt.toISOString().replace("T", " ").substring(0, 16),
+                submittedAt: profile.createdAt.toISOString().replace("T", " ").substring(0, 19),
 
                 avatar: `${profile.firstName?.charAt(0) || ""}${profile.lastName?.charAt(0) || ""}`.toUpperCase(),
             };
@@ -236,7 +236,8 @@ export async function PATCH(request: Request) {
                 data: {
                     status: "approved",
                     approvedBy: adminName,
-                    approvedAt: getISTDateWithOffset(0)
+                    approvedAt: getISTDateWithOffset(0),
+                    updatedAt: getISTDateWithOffset(0),
                 }
             });
         }
@@ -378,7 +379,8 @@ export async function PATCH(request: Request) {
                     data: {
                         userId: rejectedProfile.userId,
                         status: "rejected",
-                        rawResponse: formattedData
+                        rawResponse: formattedData,
+                        verifiedAt: getISTDateWithOffset(0),
                     }
                 });
 
@@ -386,14 +388,16 @@ export async function PATCH(request: Request) {
                     where: { userId: kycProfile.userId, attemptStatus: "pending" },
                     data: {
                         attemptStatus: "rejected",
-                        kycRejectionId: rejection.id
+                        kycRejectionId: rejection.id,
+                        updatedAt: getISTDateWithOffset(0),
                     }
                 });
 
                 await tx.onboarding.update({
                     where: { userId: kycProfile.userId },
                     data: {
-                        status: "rejected"
+                        status: "rejected",
+                        updatedAt: getISTDateWithOffset(0),
                     }
                 });
 
@@ -401,7 +405,8 @@ export async function PATCH(request: Request) {
                     where: { id: numericId },
                     data: {
                         rejectReason: null,
-                        rejectedBy: null
+                        rejectedBy: null,
+                        updatedAt: getISTDateWithOffset(0),
                     }
                 });
 

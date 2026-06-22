@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 import { logAdminActivity } from "@/lib/admin/logAdminActivity";
 import { parseDeviceInfo } from "@/lib/admin/device";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function DELETE(req: Request) {
     try {
@@ -52,6 +53,7 @@ export async function DELETE(req: Request) {
             data: {
                 LastStatus: existingAdmin.status,
                 status: 3,
+                updated_at: getISTDateWithOffset(0)
             },
         });
 

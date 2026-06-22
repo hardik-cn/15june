@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 import { logAdminActivity } from "@/lib/admin/logAdminActivity";
 import { parseDeviceInfo } from "@/lib/admin/device";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function POST(req: Request) {
     try {
@@ -74,8 +75,11 @@ export async function POST(req: Request) {
                 password: hashedPassword,
                 role,
                 status,
-                two_factor_enabled: false,
+                two_factor_enabled: twoFactorEnabled === true,
                 two_factor_secret: twoFactorEnabled === true ? twoFactorSecret : null,
+                two_factor_configured: false,
+                created_at: getISTDateWithOffset(0),
+                updated_at: getISTDateWithOffset(0),
             } as any,
             select: {
                 id: true,

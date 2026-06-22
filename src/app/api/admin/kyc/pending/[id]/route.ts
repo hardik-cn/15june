@@ -136,7 +136,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             cinVerified: kycProfile.cinVerified,
             aadharVerified: kycProfile.aadharVerified,
 
-            createdAt: kycProfile.createdAt.toISOString(),
+            createdAt: kycProfile.createdAt?.toISOString().replace("T", " ").substring(0, 19),
 
             status: kycProfile.status,
 
@@ -159,6 +159,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             businessDocuments: kycProfile.businessDocuments,
         };
 
+        // console.log(data.documents?.map(doc => doc.verifiedAt));
         // =============================
         // STEP 8: RETURN KYC DATA
         // =============================

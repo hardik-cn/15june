@@ -8,6 +8,8 @@ import PaginationControls from "../../components/PaginationControls";
 import { adminFetch } from "@/lib/admin/adminFetch";
 import { encodeId } from "@/lib/admin/encodeId";
 import { List } from "lucide-react";
+import { format } from "date-fns";
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface KYCRecord {
@@ -375,13 +377,15 @@ export default function PendingKYCClient() {
                                     </td>
 
                                     {/* Status label */}
-                                    <td className="py-4 px-6 hidden lg:table-cell text-white/50 text-sm">
+                                    <td className="py-4 px-6 hidden lg:table-cell text-white/90 text-xs tracking-wide">
                                         {kyc.status}
                                     </td>
 
                                     {/* Submitted */}
-                                    <td className="py-4 px-6 hidden lg:table-cell text-white/50 text-sm">
-                                        {kyc.submittedAt}
+                                    <td className="py-4 px-6 hidden lg:table-cell text-white/60 text-xs tracking-wide">
+                                        {kyc.submittedAt
+                                            ? format(new Date(kyc.submittedAt), "dd MMM yyyy, h:mm:ss a")
+                                            : "N/A"}
                                     </td>
 
                                     {/* Actions */}

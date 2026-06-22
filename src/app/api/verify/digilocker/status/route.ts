@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cashfreeClient } from "@/lib/cashfree";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 interface AddressData {
     house?: string;
@@ -89,6 +90,7 @@ export async function GET(req: NextRequest) {
                 data: {
                     verificationStatus: "failed",
                     rawResponse: statusResult as any,
+                    updatedAt: getISTDateWithOffset(0),
                 },
             });
 
@@ -124,7 +126,8 @@ export async function GET(req: NextRequest) {
                     data: {
                         verificationStatus: "success",
                         extractedData: documentResult as any,
-                        verifiedAt: new Date(),
+                        verifiedAt: getISTDateWithOffset(0),
+                        updatedAt: getISTDateWithOffset(0),
                     },
                 });
 
@@ -134,6 +137,7 @@ export async function GET(req: NextRequest) {
                     },
                     data: {
                         verificationToken: null,
+                        updatedAt: getISTDateWithOffset(0),
                     },
                 });
 
@@ -177,6 +181,7 @@ export async function GET(req: NextRequest) {
                         },
                         data: {
                             kycProfileId: kycProfile.id,
+                            updatedAt: getISTDateWithOffset(0),
                         },
                     });
                 }

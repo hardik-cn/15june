@@ -555,7 +555,7 @@ export default function AdminLayoutUI({ children }: AdminLayoutUIProps) {
                             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-white rounded-full animate-pulse"></span>
                         </button> */}
 
-                            <div className="relative pl-4 border-l border-white/[0.08]" ref={profileRef}>
+                            <div className="relative pl-4" ref={profileRef}> {/* border-l border-white/[0.08] */}
                                 <button
                                     onClick={() => setProfileOpen(!profileOpen)}
                                     className="flex items-center gap-3 hover:bg-white/[0.03] p-1.5 -my-1.5 -mr-2 rounded-xl transition-colors outline-none">
@@ -587,11 +587,9 @@ export default function AdminLayoutUI({ children }: AdminLayoutUIProps) {
                                                 </div>
                                                 <div className="overflow-hidden">
                                                     <p className="text-white font-medium text-sm truncate">
-                                                        {userData.firstName || userData.lastName
-                                                            ? `${userData.firstName} ${userData.lastName}`.trim()
-                                                            : "Admin User"}
+                                                        {userData.firstName || userData.lastName ? `${userData.firstName} ${userData.lastName}`.trim() : "Admin User"}
                                                     </p>
-                                                    <p className="text-white/40 text-xs truncate">{userData.roleName}</p>
+                                                    <p className="text-white/40 text-xs truncate mt-1">{userData.roleName}</p>
                                                 </div>
                                             </div>
                                         </div>

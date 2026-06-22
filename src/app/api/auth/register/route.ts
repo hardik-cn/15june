@@ -10,6 +10,7 @@ import { sendTemplateEmail } from "@/lib/emails/sendTemplateEmail";
 import { sendSlackNotification } from "@/lib/slack/sendSlackNotification";
 import { registerSchema } from "@/lib/validators/registerSchema";
 import { normalizePhone } from "@/lib/security/phone";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function POST(req: Request) {
     try {
@@ -55,12 +56,12 @@ export async function POST(req: Request) {
 
         const redisEmailVerified = await redis.get(`otp:email:verified:${normalizedEmail}`);
 
-        // if (!redisEmailVerified) {
-        //     return NextResponse.json(
-        //         { error: "Email verification required" },
-        //         { status: 400 }
-        //     );
-        // }
+        if (!redisEmailVerified) {
+            return NextResponse.json(
+                { error: "Email verification required" },
+                { status: 400 }
+            );
+        }
 
         const fullPhone = normalizePhone(countryCode, normalizedPhone);
 
@@ -111,6 +112,8 @@ export async function POST(req: Request) {
                     isPhoneVerified: 1,
                     isEmailVerified: 1,
                     lockStatus: encryptedPassword,
+                    createdAt: getISTDateWithOffset(0),
+                    updatedAt: getISTDateWithOffset(0),
                 },
             });
 
@@ -119,6 +122,8 @@ export async function POST(req: Request) {
                     uuid: uuidv4(),
                     userId: user.id,
                     whmcsClientId: null,
+                    createdAt: getISTDateWithOffset(0),
+                    updatedAt: getISTDateWithOffset(0),
                 },
             });
 
