@@ -225,7 +225,8 @@ export async function PATCH(request: Request) {
                     await db.diditSession.update({
                         where: { id: session.id },
                         data: {
-                            status: "Approved"
+                            status: "Approved",
+                            updatedAt: getISTDateWithOffset(0),
                         }
                     });
                 }
@@ -250,6 +251,7 @@ export async function PATCH(request: Request) {
                 where: { id: numericId },
                 data: {
                     status: "pending_superadmin",
+                    updatedAt: getISTDateWithOffset(0),
                 },
                 select: {
                     firstName: true,

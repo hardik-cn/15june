@@ -319,10 +319,13 @@ model VerificationDocument {
 // ================= USER INVITATIONS MODULE =================
 model UserInvitation {
   id            Int      @id @default(autoincrement())
+  uuidToken     String   @unique
   whmcsClientId Int
   email         String
   permissions   String?  @db.Text
-  sentAt        DateTime @default(now())
+  acceptedAt    DateTime?
+  updatedAt     DateTime?
+  createdAt     DateTime @default(now())
 
   @@unique([whmcsClientId, email])
   @@map("user_invitations")

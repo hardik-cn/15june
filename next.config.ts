@@ -52,7 +52,7 @@ const nextConfig: NextConfig = {
 
   allowedDevOrigins: [
     "thinness-handling-recede.ngrok-free.dev",
-    "unlovely-sandworm-proving.ngrok-free.dev"
+    "repeal-splinter-hurt.ngrok-free.dev"
   ],
 
   async headers() {

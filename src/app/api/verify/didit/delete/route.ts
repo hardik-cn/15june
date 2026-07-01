@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { deleteDiditSession } from "@/lib/didit";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function DELETE(req: NextRequest) {
     try {
@@ -60,7 +61,10 @@ export async function DELETE(req: NextRequest) {
         // ── Mark session as deleted in our DB ────────────────────────────────
         await db.diditSession.update({
             where: { sessionId },
-            data: { status: "Deleted" },
+            data: {
+                status: "Deleted",
+                updatedAt: getISTDateWithOffset(0)
+            },
         }).catch(() => {
             // If status column doesn't allow "Deleted", just ignore
         });

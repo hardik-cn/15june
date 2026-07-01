@@ -6,7 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Button } from "@/app/components/ui/button";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
-import { UserPlus, Crown, Trash2, Pencil, X, RefreshCw, Users, Clock, Mail, Loader2 } from "lucide-react";
+import {
+    UserPlus, Crown, Trash2, Pencil, X, RefreshCw, Users, Clock, Mail, Loader2,
+    User, Server, KeyRound, ExternalLink, Globe, Settings2, CreditCard,
+    FileCheck2, LifeBuoy, TrendingUp, ShoppingCart, ShieldCheck, ShieldAlert,
+    Check
+} from "lucide-react";
 import { toast } from "sonner";
 import {
     Breadcrumb,
@@ -26,8 +31,8 @@ import {
 } from "@/app/components/ui/dialog";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Checkbox } from "@/app/components/ui/checkbox";
 import { apiFetch } from "@/lib/apiFetch";
+import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -64,6 +69,91 @@ function formatDate(d: string | null | undefined) {
     const dt = new Date(d);
     if (isNaN(dt.getTime())) return d; // already a string like "1 hour ago"
     return dt.toLocaleString();
+}
+
+const PERMISSION_DETAILS: Record<string, { title: string; description: string; icon: any }> = {
+    profile: {
+        title: "Modify Master Account Profile",
+        description: "Access and modify the client profile information",
+        icon: User,
+    },
+    contacts: {
+        title: "View & Manage Contacts",
+        description: "Access and manage contacts",
+        icon: Users,
+    },
+    products: {
+        title: "View Products & Services",
+        description: "View access to products, services and addons",
+        icon: Server,
+    },
+    manageproducts: {
+        title: "View & Modify Product Passwords",
+        description: "Allow password resets and other actions",
+        icon: KeyRound,
+    },
+    productsso: {
+        title: "Perform Single Sign-On",
+        description: "Allow single sign-on into services",
+        icon: ExternalLink,
+    },
+    domains: {
+        title: "View Domains",
+        description: "View access to domain registrations",
+        icon: Globe,
+    },
+    managedomains: {
+        title: "Manage Domain Settings",
+        description: "Allow domain management eg. nameservers/whois/transfers",
+        icon: Settings2,
+    },
+    invoices: {
+        title: "View & Pay Invoices",
+        description: "View and payment access to invoices",
+        icon: CreditCard,
+    },
+    quotes: {
+        title: "View & Accept Quotes",
+        description: "View and acceptance permissions for quotes",
+        icon: FileCheck2,
+    },
+    tickets: {
+        title: "View & Open Support Tickets",
+        description: "Access to open, respond and manage support tickets",
+        icon: LifeBuoy,
+    },
+    affiliates: {
+        title: "View & Manage Affiliate Account",
+        description: "Access to view and request withdrawals",
+        icon: TrendingUp,
+    },
+    emails: {
+        title: "View Emails",
+        description: "Access to view account email history",
+        icon: Mail,
+    },
+    orders: {
+        title: "Place New Orders/Upgrades/Cancellations",
+        description: "Allow placing of new orders",
+        icon: ShoppingCart,
+    },
+};
+
+function getPermissionDetail(key: string, fallbackLabel: string) {
+    const cleanKey = key.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    const foundEntry = Object.entries(PERMISSION_DETAILS).find(([k]) => {
+        return k.toLowerCase() === cleanKey;
+    });
+
+    if (foundEntry) {
+        return foundEntry[1];
+    }
+
+    return {
+        title: fallbackLabel || key,
+        description: "Granted permission for this feature",
+        icon: ShieldCheck,
+    };
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -296,18 +386,33 @@ export default function UserManagement() {
                         {/* Invite Dialog */}
                         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                             <DialogTrigger asChild>
-                                <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Invite New User
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[480px]">
-                                <DialogHeader>
-                                    <DialogTitle>Invite New User</DialogTitle>
-                                </DialogHeader>
-                                <form onSubmit={handleInviteUser} className="space-y-4 pt-2">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="invite-email">Email Address</Label>
+                            <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto p-0 border-none bg-background shadow-2xl rounded-xl [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-thumb]:rounded-full">
+                                <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 border-b border-border">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-3 bg-primary/10 text-primary rounded-xl">
+                                            <UserPlus className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <DialogTitle className="text-xl font-bold text-foreground">Invite New User</DialogTitle>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Send an invitation email to delegate account access with custom permissions.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleInviteUser} className="p-6 space-y-6">
+                                    {/* Email Address Section */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="invite-email" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                                            <Mail className="h-4 w-4 text-muted-foreground" />
+                                            Email Address
+                                        </Label>
                                         <Input
                                             id="invite-email"
                                             type="email"
@@ -315,70 +420,164 @@ export default function UserManagement() {
                                             value={inviteEmail}
                                             onChange={(e) => setInviteEmail(e.target.value)}
                                             required
+                                            className="h-11 rounded-lg border-border focus-visible:ring-primary focus-visible:border-primary shadow-sm"
                                         />
+                                        <p className="text-[11px] text-muted-foreground">
+                                            We'll send an invitation link to this email address to create or link their account.
+                                        </p>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label>Permissions</Label>
-
-                                        <div className="flex items-center gap-2">
-                                            <Checkbox
-                                                id="all-perms"
-                                                checked={allPermissions}
-                                                onCheckedChange={() => setAllPermissions(true)}
-                                            />
-                                            <label htmlFor="all-perms" className="cursor-pointer text-sm">
-                                                All Permissions
-                                            </label>
+                                    {/* Permissions Configuration Section */}
+                                    <div className="space-y-4 pt-2 border-t border-border">
+                                        <div className="flex flex-col gap-1">
+                                            <Label className="text-sm font-semibold text-foreground">Permission Type</Label>
+                                            <p className="text-xs text-muted-foreground">Choose the level of access you want to grant to this user.</p>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <Checkbox
-                                                id="choose-perms"
-                                                checked={!allPermissions}
-                                                onCheckedChange={() => setAllPermissions(false)}
-                                            />
-                                            <label htmlFor="choose-perms" className="cursor-pointer text-sm">
-                                                Choose Permissions
-                                            </label>
-                                        </div>
-
-                                        {!allPermissions && permissionsList.length > 0 && (
-                                            <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto rounded-md border p-3">
-                                                {permissionsList.map((perm) => (
-                                                    <div key={perm.key} className="flex items-center gap-2">
-                                                        <Checkbox
-                                                            id={`perm-${perm.key}`}
-                                                            checked={selectedPermissions.includes(perm.key)}
-                                                            onCheckedChange={() =>
-                                                                togglePerm(perm.key, selectedPermissions, setSelectedPermissions)
-                                                            }
-                                                        />
-                                                        <label htmlFor={`perm-${perm.key}`} className="text-xs cursor-pointer">
-                                                            {perm.label}
-                                                        </label>
+                                        {/* Selector cards */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {/* Full Access card */}
+                                            <div
+                                                onClick={() => setAllPermissions(true)}
+                                                className={cn(
+                                                    "relative flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all select-none",
+                                                    allPermissions
+                                                        ? "border-primary bg-primary/[0.04] ring-1 ring-primary shadow-sm"
+                                                        : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
+                                                )}
+                                            >
+                                                <div className={cn("p-2 rounded-lg border", allPermissions ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border")}>
+                                                    <Crown className="h-4 w-4" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="font-semibold text-sm text-foreground">All Permissions</p>
+                                                    <p className="text-xs text-muted-foreground leading-normal">
+                                                        Grants full administrative access to all areas of the account.
+                                                    </p>
+                                                </div>
+                                                {allPermissions && (
+                                                    <div className="absolute top-2 right-2 h-4 w-4 bg-primary rounded-full flex items-center justify-center">
+                                                        <Check className="h-3 w-3 text-primary-foreground" />
                                                     </div>
-                                                ))}
+                                                )}
+                                            </div>
+
+                                            {/* Custom Permissions card */}
+                                            <div
+                                                onClick={() => setAllPermissions(false)}
+                                                className={cn(
+                                                    "relative flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all select-none",
+                                                    !allPermissions
+                                                        ? "border-primary bg-primary/[0.04] ring-1 ring-primary shadow-sm"
+                                                        : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
+                                                )}
+                                            >
+                                                <div className={cn("p-2 rounded-lg border", !allPermissions ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border")}>
+                                                    <Settings2 className="h-4 w-4" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="font-semibold text-sm text-foreground">Choose Permissions</p>
+                                                    <p className="text-xs text-muted-foreground leading-normal">
+                                                        Selectively configure access levels for specific actions.
+                                                    </p>
+                                                </div>
+                                                {!allPermissions && (
+                                                    <div className="absolute top-2 right-2 h-4 w-4 bg-primary rounded-full flex items-center justify-center">
+                                                        <Check className="h-3 w-3 text-primary-foreground" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Custom Permissions Grid */}
+                                        {!allPermissions && permissionsList.length > 0 && (
+                                            <div className="space-y-2 pt-2">
+                                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Access Permissions</Label>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto rounded-xl border border-border p-4 bg-muted/20 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-thumb]:rounded-full pr-2">
+                                                    {permissionsList.map((perm) => {
+                                                        const detail = getPermissionDetail(perm.key, perm.label);
+                                                        const IconComp = detail.icon;
+                                                        const selected = selectedPermissions.includes(perm.key);
+                                                        return (
+                                                            <div
+                                                                key={perm.key}
+                                                                role="checkbox"
+                                                                aria-checked={selected}
+                                                                tabIndex={0}
+                                                                onClick={() => togglePerm(perm.key, selectedPermissions, setSelectedPermissions)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === " " || e.key === "Enter") {
+                                                                        e.preventDefault();
+                                                                        togglePerm(perm.key, selectedPermissions, setSelectedPermissions);
+                                                                    }
+                                                                }}
+                                                                className={cn(
+                                                                    "flex items-start gap-3 p-3 rounded-lg border cursor-pointer select-none transition-all hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                                                                    selected
+                                                                        ? "border-primary bg-primary/[0.02] shadow-sm"
+                                                                        : "border-border bg-card hover:border-muted-foreground/30"
+                                                                )}
+                                                            >
+                                                                <div className={cn(
+                                                                    "flex h-8 w-8 items-center justify-center rounded-lg border shrink-0",
+                                                                    selected
+                                                                        ? "bg-primary/10 text-primary border-primary/20"
+                                                                        : "bg-muted text-muted-foreground border-border"
+                                                                )}>
+                                                                    <IconComp className="h-4 w-4" />
+                                                                </div>
+                                                                <div className="flex-1 space-y-1 min-w-0">
+                                                                    <div className="flex items-center justify-between gap-2">
+                                                                        <span className="text-xs font-semibold text-foreground truncate">{detail.title}</span>
+                                                                        <div className={cn(
+                                                                            "h-4 w-4 rounded-full border shrink-0 flex items-center justify-center transition-all",
+                                                                            selected
+                                                                                ? "bg-primary border-primary text-primary-foreground"
+                                                                                : "border-muted-foreground/30 bg-transparent"
+                                                                        )}>
+                                                                            {selected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="text-[10px] leading-relaxed text-muted-foreground line-clamp-2">
+                                                                        {detail.description}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
 
-                                    <DialogFooter>
+                                    {/* Footer actions */}
+                                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                                         <Button
                                             type="button"
                                             variant="outline"
                                             onClick={() => setInviteOpen(false)}
+                                            className="h-10 px-5 rounded-lg"
                                         >
                                             Cancel
                                         </Button>
                                         <Button
                                             type="submit"
                                             disabled={inviteLoading}
-                                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                            className="h-10 px-5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2"
                                         >
-                                            {inviteLoading ? "Sending..." : "Send Invitation"}
+                                            {inviteLoading ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    Sending...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <UserPlus className="h-4 w-4" />
+                                                    Send Invitation
+                                                </>
+                                            )}
                                         </Button>
-                                    </DialogFooter>
+                                    </div>
                                 </form>
                             </DialogContent>
                         </Dialog>
@@ -538,47 +737,108 @@ export default function UserManagement() {
 
             {/* ── Edit Permissions Dialog ── */}
             <Dialog open={!!editingUser} onOpenChange={(o) => !o && setEditingUser(null)}>
-                <DialogContent className="sm:max-w-[480px]">
-                    <DialogHeader>
-                        <DialogTitle>
-                            Edit Permissions — {editingUser?.firstname} {editingUser?.lastname}
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <div className="space-y-2 py-2">
-                        {permissionsList.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No permissions available</p>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto rounded-md border p-3">
-                                {permissionsList.map((perm) => (
-                                    <div key={perm.key} className="flex items-center gap-2">
-                                        <Checkbox
-                                            id={`edit-perm-${perm.key}`}
-                                            checked={editPermissions.includes(perm.key)}
-                                            onCheckedChange={() =>
-                                                togglePerm(perm.key, editPermissions, setEditPermissions)
-                                            }
-                                        />
-                                        <label htmlFor={`edit-perm-${perm.key}`} className="text-xs cursor-pointer">
-                                            {perm.label}
-                                        </label>
-                                    </div>
-                                ))}
+                <DialogContent className="sm:max-w-[680px] max-h-[90vh] overflow-y-auto p-0 border-none bg-background shadow-2xl rounded-xl [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-thumb]:rounded-full">
+                    <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 border-b border-border">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-primary/10 text-primary rounded-xl">
+                                <Settings2 className="h-6 w-6" />
                             </div>
-                        )}
+                            <div>
+                                <DialogTitle className="text-xl font-bold text-foreground">
+                                    Edit Permissions
+                                </DialogTitle>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Manage access permissions for {editingUser?.firstname} {editingUser?.lastname} ({editingUser?.email}).
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditingUser(null)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleUpdatePermissions}
-                            disabled={editLoading}
-                        >
-                            {editLoading ? "Saving…" : "Save Permissions"}
-                        </Button>
-                    </DialogFooter>
+                    <div className="p-6 space-y-6">
+                        {permissionsList.length === 0 ? (
+                            <div className="py-8 text-center text-muted-foreground flex flex-col items-center gap-2">
+                                <ShieldAlert className="h-8 w-8 opacity-40" />
+                                <p className="text-sm">No permissions available</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Access Permissions</Label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto rounded-xl border border-border p-4 bg-muted/20 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-thumb]:rounded-full pr-2">
+                                    {permissionsList.map((perm) => {
+                                        const detail = getPermissionDetail(perm.key, perm.label);
+                                        const IconComp = detail.icon;
+                                        const selected = editPermissions.includes(perm.key);
+                                        return (
+                                            <div
+                                                key={perm.key}
+                                                role="checkbox"
+                                                aria-checked={selected}
+                                                tabIndex={0}
+                                                onClick={() => togglePerm(perm.key, editPermissions, setEditPermissions)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === " " || e.key === "Enter") {
+                                                        e.preventDefault();
+                                                        togglePerm(perm.key, editPermissions, setEditPermissions);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "flex items-start gap-3 p-3 rounded-lg border cursor-pointer select-none transition-all hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                                                    selected
+                                                        ? "border-primary bg-primary/[0.02] shadow-sm"
+                                                        : "border-border bg-card hover:border-muted-foreground/30"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "flex h-8 w-8 items-center justify-center rounded-lg border shrink-0",
+                                                    selected
+                                                        ? "bg-primary/10 text-primary border-primary/20"
+                                                        : "bg-muted text-muted-foreground border-border"
+                                                )}>
+                                                    <IconComp className="h-4 w-4" />
+                                                </div>
+                                                <div className="flex-1 space-y-1 min-w-0">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-xs font-semibold text-foreground truncate">{detail.title}</span>
+                                                        <div className={cn(
+                                                            "h-4 w-4 rounded-full border shrink-0 flex items-center justify-center transition-all",
+                                                            selected
+                                                                ? "bg-primary border-primary text-primary-foreground"
+                                                                : "border-muted-foreground/30 bg-transparent"
+                                                        )}>
+                                                            {selected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[10px] leading-relaxed text-muted-foreground line-clamp-2">
+                                                        {detail.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+                            <Button variant="outline" onClick={() => setEditingUser(null)} className="h-10 px-5 rounded-lg">
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleUpdatePermissions}
+                                disabled={editLoading}
+                                className="h-10 px-5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2"
+                            >
+                                {editLoading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    "Save Permissions"
+                                )}
+                            </Button>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </DashboardLayout>

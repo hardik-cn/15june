@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDiditSession, extractAddressFromDiditResult } from "@/lib/didit";
 import { verifyDiditSignature } from "@/lib/didit/verifySignature";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 // ── Shared processing logic ───────────────────────────────────────────────────
 
@@ -47,7 +48,8 @@ async function processSession(sessionId: string) {
       addressCountry: address.country ?? null,
       // Raw response for audit
       rawDecisionResponse: result as any,
-      ...(isVerified ? { approvedAt: new Date() } : {}),
+      ...(isVerified ? { approvedAt: getISTDateWithOffset(0) } : {}),
+      updatedAt: getISTDateWithOffset(0),
     },
   });
 

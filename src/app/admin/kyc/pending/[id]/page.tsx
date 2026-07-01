@@ -690,8 +690,17 @@ function KYCDetailsContent() {
                                                         {/* Audit Metadata */}
                                                         <div className="pt-6 border-t border-white/[0.05] flex items-center justify-between text-xs text-white/20 font-medium">
                                                             <div className="flex items-center gap-1">
-                                                                <p className="text-xs font-semibold text-white/40 tracking-wider">Created At:</p> <p className="text-white/90">{new Date(session.created_at).toLocaleString()}</p>
-                                                                {session.verification_date && <p>Verified: <span className="text-white/40">{new Date(session.verification_date).toLocaleString()}</span></p>}
+                                                                <p className="text-xs font-semibold text-white/40 tracking-wider">Verified At:</p>
+                                                                <p className="text-white/90">{new Intl.DateTimeFormat("en-GB", {
+                                                                    timeZone: "UTC",
+                                                                    day: "2-digit",
+                                                                    month: "short",
+                                                                    year: "numeric",
+                                                                    hour: "2-digit",
+                                                                    minute: "2-digit",
+                                                                    second: "2-digit",
+                                                                    hour12: true,
+                                                                }).format(new Date(kycData.diditSession.approvedAt)).replace("am", "AM").replace("pm", "PM")}</p>
                                                             </div>
                                                         </div>
                                                     </div>

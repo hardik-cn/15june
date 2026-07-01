@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createDiditSession } from "@/lib/didit";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
 
 export async function POST(req: NextRequest) {
     try {
@@ -64,6 +65,8 @@ export async function POST(req: NextRequest) {
                 status: diditSession.status ?? "Not Started",
                 userId: user.id,
                 rawSessionResponse: diditSession as any,
+                createdAt: getISTDateWithOffset(0),
+                updatedAt: getISTDateWithOffset(0),
             },
         });
 

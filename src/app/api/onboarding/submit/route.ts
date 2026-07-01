@@ -243,6 +243,7 @@ export async function POST(req: Request) {
             countryCode: user.countryCode,
             accountType,
             country,
+            state: state ?? null,
             companyName: companyName ?? null,
             postalCode: postalCode ?? null,
             streetAddress: streetAddress ?? null,

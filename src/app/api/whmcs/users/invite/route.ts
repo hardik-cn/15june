@@ -4,6 +4,10 @@ import { db } from "@/lib/db";
 import { callWhmcsApi } from "@/lib/whmcs";
 import { getUserFromRequest } from "@/lib/auth/getUserFromRequest";
 import { z } from "zod";
+import { sendTemplateEmail } from "@/lib/emails/sendTemplateEmail";
+import { randomUUID } from "crypto";
+import { getISTDateWithOffset } from "@/lib/getISTDate";
+
 
 const inviteUserSchema = z.object({
     email: z.string().email("Invalid email format"),
@@ -58,6 +62,18 @@ export async function POST(req: Request) {
             permissions: permissions ?? "",
         });
 
+        const uuidToken = randomUUID();
+
+        await sendTemplateEmail({
+            templateSlug: "invited-account",
+            to: email,
+            variables: {
+                email: email,
+                invite_accept_url: `${process.env.NEXT_PUBLIC_APP_URL}/invite/${uuidToken}`,
+            },
+
+        }).catch((error) => { console.log("invited account email sent failed", error); });
+
         // ── 2. Save to our local DB so we can show pending invites ───────────
         await db.userInvitation.upsert({
             where: {
@@ -70,10 +86,14 @@ export async function POST(req: Request) {
                 whmcsClientId: clientId,
                 email,
                 permissions: permissions ?? "",
+                uuidToken: uuidToken,
+                // status: "pending",
+                createdAt: getISTDateWithOffset(0),
+                updatedAt: getISTDateWithOffset(0),
             },
             update: {
                 permissions: permissions ?? "",
-                sentAt: new Date(),
+                updatedAt: getISTDateWithOffset(0),
             },
         });
 

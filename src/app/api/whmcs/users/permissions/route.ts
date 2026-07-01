@@ -1,3 +1,4 @@
+// api/whmcs/users/permissions/route.ts
 import { NextResponse } from "next/server";
 import { callWhmcsApi } from "@/lib/whmcs";
 
@@ -18,7 +19,6 @@ export async function GET() {
         return NextResponse.json(formatted);
 
     } catch (error: any) {
-        console.error("PERMISSION ERROR:", error);
         return NextResponse.json(
             { error: error.message },
             { status: 500 }

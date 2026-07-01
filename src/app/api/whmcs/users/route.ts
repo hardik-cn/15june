@@ -26,6 +26,7 @@ export async function GET(req: Request) {
             },
         });
 
+        // console.log("Full User: ", fullUser);
         const clientId = fullUser?.onboarding?.whmcsClientId;
 
         if (!clientId) {
@@ -41,7 +42,7 @@ export async function GET(req: Request) {
             firstname: fullUser?.firstName ?? "",
             lastname: fullUser?.lastName ?? "",
             email: fullUser?.email ?? "",
-            lastLogin: fullUser?.sessions?.[0]?.createdAt ?? null,
+            lastLogin: fullUser?.sessions?.[0]?.lastActivity ?? null,
         };
 
         // ── WHMCS Users ───────────────────────────────
@@ -101,8 +102,9 @@ export async function GET(req: Request) {
         // ── Pending Invitations ───────────────────────
         const pendingInvites = await db.userInvitation.findMany({
             where: { whmcsClientId: clientId },
-            orderBy: { sentAt: "desc" },
+            orderBy: { createdAt: "desc" },
         });
+
 
         return NextResponse.json(
             {

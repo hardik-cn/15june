@@ -11,6 +11,7 @@ type SlackKYCApprovedPayload = {
     businessType?: string | null;
     companyName?: string | null;
     city?: string | null;
+    state?: string | null;
     country?: string | null;
     postalCode?: string | null;
     approvedBy?: string | null;
@@ -35,6 +36,7 @@ export async function sendSlackNotification(
         const addressLine = [
             user.streetAddress,
             user.city,
+            user.state,
             user.country,
             user.postalCode,
         ]

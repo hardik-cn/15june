@@ -15,6 +15,7 @@ export async function middleware(req: NextRequest) {
     const csrfExcluded = [
         "/api/csrf",
         "/api/auth/login",
+        "/api/auth/invite",
         "/api/auth/register",
         "/api/otp/phone",
         "/api/otp/email",

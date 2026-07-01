@@ -159,7 +159,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             businessDocuments: kycProfile.businessDocuments,
         };
 
-        // console.log(data.documents?.map(doc => doc.verifiedAt));
+        // console.log(data.diditSession?.approvedAt);
         // =============================
         // STEP 8: RETURN KYC DATA
         // =============================

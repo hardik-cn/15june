@@ -13,6 +13,7 @@ type KycSlackPayload = {
     currency: string;
     streetAddress: string | null;
     city?: string | null;
+    state?: string | null;
     postalCode?: string | null;
 };
 
@@ -34,6 +35,7 @@ export async function sendKycSlackNotification(
         const addressLine = [
             data.streetAddress,
             data.city,
+            data.state,
             data.country,
             data.postalCode,
         ]

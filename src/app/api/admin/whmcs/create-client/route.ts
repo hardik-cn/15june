@@ -156,7 +156,7 @@ export async function POST(req: Request) {
     // =============================
     await db.user.update({
         where: { id: user.id },
-        data: { whmcsClientId },
+        data: { whmcsClientId, updatedAt: getISTDateWithOffset(0) },
     });
 
     // =============================
@@ -175,6 +175,7 @@ export async function POST(req: Request) {
             streetAddress: kycProfile.streetAddress || "",
             country: kycProfile.country || "",
             city: kycProfile.city || "",
+            state: kycProfile.state || "",
             postalCode: kycProfile.postalCode || "",
             approvedBy: `${admin.first_name} ${admin.last_name} (${adminRoleName})`.trim(),
         },
