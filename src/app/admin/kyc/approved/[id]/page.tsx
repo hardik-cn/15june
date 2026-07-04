@@ -1013,8 +1013,7 @@ function ApprovedKYCDetailsContent() {
                                                                 : kycData.addressType === 1
                                                                     ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                                                                     : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                                                                }`}
-                                                        >
+                                                                }`}>
                                                             {kycData.internationalVerified == 1
                                                                 ? kycData.addressType === 1
                                                                     ? "Identity Verified"

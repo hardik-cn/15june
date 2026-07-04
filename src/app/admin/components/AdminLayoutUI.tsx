@@ -186,7 +186,7 @@ const navItems: NavItem[] = [
             { label: "Users list", href: ADMIN_ROUTES.STAFF.LIST, icon: <ListIcon />, moduleKey: "staff" },
             { label: "Deleted", href: ADMIN_ROUTES.STAFF.DELETED, icon: <TrashIcon />, moduleKey: "staff_deleted" },
             { label: "Roles & Permissions", href: ADMIN_ROUTES.ROLES, icon: <RolesIcon />, moduleKey: "roles" },
-            { label: "Email Templates", href: ADMIN_ROUTES.EMAIL_TEMPLATES.LIST, icon: <MailIcon />, moduleKey: "email-templates" },
+            { label: "Email Templates", href: ADMIN_ROUTES.EMAIL_TEMPLATES.LIST, icon: <MailIcon />, moduleKey: "email_templates" },
             { label: "Activity Log", href: ADMIN_ROUTES.ACTIVITY_LOG, icon: <ActivityIcon />, moduleKey: "activity-log" },
         ],
     },

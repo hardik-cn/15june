@@ -3,6 +3,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
+import { parseDeviceInfo } from "@/lib/admin/device";
+import { logAdminActivity } from "@/lib/admin/logAdminActivity";
+import { z } from "zod";
 
 export async function GET(req: Request) {
     try {
@@ -20,7 +23,7 @@ export async function GET(req: Request) {
         // =============================
         const templates =
             await db.emailTemplate.findMany({
-                where: { status: "1" },
+                where: { status: { in: ["1", "0"] } },
                 orderBy: {
                     id: "desc"
                 },
@@ -54,7 +57,20 @@ export async function POST(req: Request) {
         // =============================
         // STEP 2: PARSE REQUEST DATA
         // =============================
-        const { name, subject, body, status, } = await req.json();
+        const templateSchema = z.object({
+            name: z.string().min(1).max(100),
+            subject: z.string().min(1).max(255),
+            body: z.string().min(1),
+            status: z.enum(["0", "1"]).optional(),
+        });
+
+        const parsed = templateSchema.safeParse(await req.json());
+
+        if (!parsed.success) {
+            return NextResponse.json({ error: "Invalid template data" }, { status: 400 });
+        }
+
+        const { name, subject, body, status } = parsed.data;
 
         // =============================
         // STEP 3: VALIDATE INPUT DATA
@@ -83,7 +99,35 @@ export async function POST(req: Request) {
             });
 
         // =============================
-        // STEP 6: RETURN SUCCESS RESPONSE
+        // STEP 6: LOG ADMIN ACTIVITY
+        // =============================
+        const userAgent = req.headers.get("user-agent") || "unknown";
+        const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+        const { device, browser } = parseDeviceInfo(userAgent);
+
+        await logAdminActivity({
+            logAction: "EMAIL_TEMPLATE_CREATED",
+            logMessage: `Email template created successfully`,
+            adminId: admin.id,
+            adminName: `${admin.first_name} ${admin.last_name}`,
+            ipAddress,
+            userAgent,
+            device,
+            browser,
+            rawData: {
+                newData: {
+                    name: template.name,
+                    // slug: template.slug,
+                    subject: template.subject,
+                    // body: template.body,
+                    status: template.status === "1" ? "Active" : "Inactive",
+                },
+                oldData: null,
+            },
+        });
+
+        // =============================
+        // STEP 7: RETURN SUCCESS RESPONSE
         // =============================
         return NextResponse.json({
             success: true,

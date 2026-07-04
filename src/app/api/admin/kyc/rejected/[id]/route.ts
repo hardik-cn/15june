@@ -237,7 +237,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         });
 
     } catch (error) {
-        console.error("Error fetching rejected KYC details:", error);
-        return NextResponse.json({ success: false, error: "Internal Server Error", }, { status: 500 });
+        console.error("Error fetching rejected KYC details", {
+            message: error instanceof Error ? error.message : "Unknown error",
+        });
+
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

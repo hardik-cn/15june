@@ -253,18 +253,7 @@ export async function PATCH(request: Request) {
                     status: "pending_superadmin",
                     updatedAt: getISTDateWithOffset(0),
                 },
-                select: {
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                    phone: true,
-                    accountType: true,
-                    companyName: true,
-                    city: true,
-                    country: true,
-                    state: true,
-                    postalCode: true,
-                    streetAddress: true,
+                include: {
                     user: {
                         select: {
                             countryCode: true
@@ -281,6 +270,55 @@ export async function PATCH(request: Request) {
             });
 
             const adminRoleName = adminRole?.name ?? "Admin";
+
+            const deviceInfo = parseDeviceInfo(request.headers.get("user-agent") || "unknown");
+
+            await logAdminActivity({
+                logAction: "KYC_SENT_FOR_APPROVAL",
+                logMessage: "KYC sent for approval successfully",
+                userId: updatedProfile.userId,
+                username: `${updatedProfile.firstName} ${updatedProfile.lastName}`,
+                adminId: adminAuth.id,
+                adminName,
+                ipAddress: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown",
+                device: deviceInfo.device,
+                browser: deviceInfo.browser,
+                rawData: {
+                    newData: {
+                        accountType: updatedProfile.accountType,
+                        firstName: updatedProfile.firstName,
+                        lastName: updatedProfile.lastName,
+                        email: updatedProfile.email,
+                        phone: updatedProfile.phone,
+                        country: updatedProfile.country,
+                        companyName: updatedProfile.companyName,
+                        businessType: updatedProfile.businessType,
+                        gstVerified: updatedProfile.gstVerified,
+                        cinVerified: updatedProfile.cinVerified,
+                        aadharVerified: updatedProfile.aadharVerified,
+                        createdAt: updatedProfile.createdAt,
+                        updatedAt: updatedProfile.updatedAt,
+                        city: updatedProfile.city,
+                        postalCode: updatedProfile.postalCode,
+                        state: updatedProfile.state,
+                        streetAddress: updatedProfile.streetAddress,
+                        status: updatedProfile.status == "pending_superadmin" ? "Pending Approval" : "",
+                        approvedAt: updatedProfile.approvedAt,
+                        approvedBy: updatedProfile.approvedBy,
+                        rejectReason: updatedProfile.rejectReason,
+                        rejectedAt: updatedProfile.rejectedAt,
+                        rejectedBy: updatedProfile.rejectedBy,
+                        cinNumber: updatedProfile.cinNumber,
+                        gstNumber: updatedProfile.gstNumber,
+                        panNumber: updatedProfile.panNumber,
+                        panVerified: updatedProfile.panVerified,
+                        currency: updatedProfile.currency,
+                        addressType: updatedProfile.addressType,
+                    },
+                    oldData: null,
+                },
+                userAgent: request.headers.get("user-agent") || "unknown",
+            });
 
             import("@/lib/slack/admin/kyc/send_approval/sendSlackNotification")
                 .then(({ sendSlackNotification }) => {

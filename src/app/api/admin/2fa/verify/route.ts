@@ -57,15 +57,15 @@ export async function POST(req: Request) {
         // =============================
         const admin = await db.superAdmin.findUnique({
             where: { id },
-            select: {
-                id: true,
-                first_name: true,
-                last_name: true,
-                email: true,
-                role: true,
-                two_factor_secret: true,
-                two_factor_enabled: true,
-            },
+            // select: {
+            //     id: true,
+            //     first_name: true,
+            //     last_name: true,
+            //     email: true,
+            //     role: true,
+            //     two_factor_secret: true,
+            //     two_factor_enabled: true,
+            // },
         });
 
         if (!admin) {

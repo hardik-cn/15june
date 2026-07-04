@@ -77,7 +77,7 @@ export async function DELETE(req: Request) {
                 name: `${existingAdmin.first_name || ""} ${existingAdmin.last_name || ""}`.trim(),
                 email: existingAdmin.email,
                 role: existingRole?.name,
-                status: existingAdmin.status ? "active" : "inactive",
+                status: existingAdmin.status ? "Active" : "Inactive",
                 phone: existingAdmin.mobile,
                 twoFactorEnabled: existingAdmin.two_factor_enabled,
             },

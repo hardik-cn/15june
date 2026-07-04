@@ -61,7 +61,7 @@ export async function POST(req: Request) {
         // =============================
         // STEP 5: HASH PASSWORD
         // =============================
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 12);
 
         // =============================
         // STEP 6: CREATE ADMIN ACCOUNT
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
                 name: `${firstName || ""} ${lastName || ""}`.trim(),
                 email,
                 role: roleData?.name,
-                status: status === "active" ? "active" : "inactive",
+                status: status === 1 ? "Active" : "Inactive",
                 phone: phoneNumber,
                 twoFactorEnabled,
             },

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { ADMIN_ROUTES } from "@/lib/routes";
 
 
-export default function EditTemplatePage() {
+function EditTemplateContent() {
   const params = useParams();
   const router = useRouter();
   const [template, setTemplate] = useState<any>(null);
@@ -47,26 +47,30 @@ export default function EditTemplatePage() {
 
   if (isLoading) {
     return (
-      <AdminDashboardWrapper>
-        <div className="py-20 text-center text-white/40">Loading template...</div>
-      </AdminDashboardWrapper>
+      <div className="py-20 text-center text-white/40">Loading template...</div>
     );
   }
 
   if (!template) return null;
 
   return (
-    <AdminDashboardWrapper>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent mb-2">Edit Template</h1>
-          <p className="text-white/40 font-medium">Update <span className="text-white">"{template.name}"</span> template structure and content.</p>
-        </div>
-
-        <div className="pt-4">
-          <TemplateForm initialData={template} isEdit={true} />
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent mb-2">Edit Template</h1>
+        <p className="text-white/40 font-medium">Update <span className="text-white">"{template.name}"</span> template structure and content.</p>
       </div>
+
+      <div className="pt-4">
+        <TemplateForm initialData={template} isEdit={true} />
+      </div>
+    </div>
+  );
+}
+
+export default function EditTemplatePage() {
+  return (
+    <AdminDashboardWrapper requireModule="email_templates" requireAction="edit">
+      <EditTemplateContent />
     </AdminDashboardWrapper>
   );
 }

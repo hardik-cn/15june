@@ -119,24 +119,25 @@ export async function PUT(req: Request) {
         // STEP 10: PREPARE ACTIVITY LOG DATA
         // =============================
         const rawData = {
-            newData: {
-                name: `${existingAdmin.first_name || ""} ${existingAdmin.last_name || ""}`.trim(),
-                email: existingAdmin.email,
-                role: existingRole?.name,
-                status: existingAdmin.status ? "active" : "inactive",
-                phone: existingAdmin.mobile,
-                twoFactorEnabled: existingAdmin.two_factor_enabled,
-            },
             oldData: isRestore
                 ? null
                 : {
-                    name: `${updatedAdmin.first_name || ""} ${updatedAdmin.last_name || ""}`.trim(),
-                    email: updatedAdmin.email,
-                    role: adminRole?.name,
-                    status: updatedAdmin.status ? "active" : "inactive",
-                    phone: updatedAdmin.mobile,
-                    twoFactorEnabled: updatedAdmin.two_factor_enabled,
+                    name: `${existingAdmin.first_name || ""} ${existingAdmin.last_name || ""}`.trim(),
+                    email: existingAdmin.email,
+                    role: existingRole?.name,
+                    status: existingAdmin.status ? "Active" : "Inactive",
+                    phone: existingAdmin.mobile,
+                    twoFactorEnabled: existingAdmin.two_factor_enabled,
                 },
+
+            newData: {
+                name: `${updatedAdmin.first_name || ""} ${updatedAdmin.last_name || ""}`.trim(),
+                email: updatedAdmin.email,
+                role: adminRole?.name,
+                status: updatedAdmin.status ? "Active" : "Inactive",
+                phone: updatedAdmin.mobile,
+                twoFactorEnabled: updatedAdmin.two_factor_enabled,
+            },
         };
 
         // =============================

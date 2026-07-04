@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 import { getISTDateWithOffset } from "@/lib/getISTDate";
+// import { parseDeviceInfo } from "@/lib/admin/device";
+// import { logAdminActivity } from "@/lib/admin/logAdminActivity";
 
 export const MODULES = [
     { key: "dashboard", label: "Dashboard" },
@@ -112,6 +114,32 @@ export async function POST(req: Request) {
                 created_at: getISTDateWithOffset(0),
             },
         });
+
+        // // =============================
+        // // STEP 4.5: LOG ADMIN ACTIVITY
+        // // =============================
+        // const userAgent = req.headers.get("user-agent") || "unknown";
+        // const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+        // const { device, browser } = parseDeviceInfo(userAgent);
+
+        // await logAdminActivity({
+        //     logAction: "ROLE_CREATED",
+        //     logMessage: "Role created successfully",
+        //     adminId: admin.id,
+        //     adminName: `${admin.first_name} ${admin.last_name}`,
+        //     ipAddress,
+        //     userAgent,
+        //     device,
+        //     browser,
+        //     rawData: {
+        //         newData: {
+        //             name: role.name,
+        //             permissions: JSON.parse(role.permissions),
+        //             isSystem: role.is_system,
+        //         },
+        //         oldData: null,
+        //     },
+        // });
 
         // =============================
         // STEP 5: RETURN SUCCESS RESPONSE

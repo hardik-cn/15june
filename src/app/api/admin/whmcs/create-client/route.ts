@@ -8,6 +8,16 @@ import { countryNameToISO } from "@/lib/countryCode";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
 import { sendSlackNotification } from "@/lib/slack/admin/kyc/approved/sendSlackNotification";
 import { getISTDateWithOffset } from "@/lib/getISTDate";
+import { parseDeviceInfo } from "@/lib/admin/device";
+import { logAdminActivity } from "@/lib/admin/logAdminActivity";
+
+function getClientInfo(req: Request) {
+    const userAgent = req.headers.get("user-agent") ?? "unknown";
+    const ipAddress = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
+    const { device, browser } = parseDeviceInfo(userAgent);
+
+    return { userAgent, ipAddress, device, browser };
+}
 
 export async function POST(req: Request) {
     // =============================
@@ -160,7 +170,60 @@ export async function POST(req: Request) {
     });
 
     // =============================
-    // STEP 11: SEND SLACK NOTIFICATION
+    // STEP 11: LOG ADMIN ACTIVITY
+    // =============================
+    const { userAgent, ipAddress, device, browser } = getClientInfo(req);
+
+    await logAdminActivity({
+        logAction: "WHMCS_CLIENT_CREATED",
+        logMessage: "Client created successfully!",
+        userId: user.id,
+        username: `${kycProfile.firstName} ${kycProfile.lastName}`,
+        adminId: admin.id,
+        adminName: `${admin.first_name} ${admin.last_name}`,
+        ipAddress,
+        userAgent,
+        device,
+        browser,
+        rawData: {
+            newData: {
+                // whmcsClientId,
+                firstName: kycProfile.firstName,
+                lastName: kycProfile.lastName,
+                accountType: kycProfile.accountType,
+                email: kycProfile.email,
+                phone: kycProfile.phone,
+                country: kycProfile.country,
+                companyName: kycProfile.companyName,
+                businessType: kycProfile.businessType,
+                gstVerified: kycProfile.gstVerified,
+                cinVerified: kycProfile.cinVerified,
+                aadharVerified: kycProfile.aadharVerified,
+                createdAt: kycProfile.createdAt,
+                updatedAt: kycProfile.updatedAt,
+                city: kycProfile.city,
+                postalCode: kycProfile.postalCode,
+                state: kycProfile.state,
+                streetAddress: kycProfile.streetAddress,
+                status: kycProfile.status,
+                approvedAt: kycProfile.approvedAt,
+                approvedBy: kycProfile.approvedBy,
+                rejectReason: kycProfile.rejectReason,
+                rejectedAt: kycProfile.rejectedAt,
+                rejectedBy: kycProfile.rejectedBy,
+                cinNumber: kycProfile.cinNumber,
+                gstNumber: kycProfile.gstNumber,
+                panNumber: kycProfile.panNumber,
+                panVerified: kycProfile.panVerified,
+                currency: kycProfile.currency,
+                addressType: kycProfile.addressType,
+            },
+            oldData: null,
+        },
+    });
+
+    // =============================
+    // STEP 12: SEND SLACK NOTIFICATION
     // =============================
     await sendSlackNotification(
         {

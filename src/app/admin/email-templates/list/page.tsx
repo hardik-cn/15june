@@ -50,9 +50,9 @@ const Modal = ({ isOpen, onClose, title, children, size = "md" }: { isOpen: bool
   );
 };
 
-export default function EmailTemplatesListPage() {
+function EmailTemplatesListContent() {
   const router = useRouter();
-  // const { hasPermission } = useAdmin();
+  const { hasPermission } = useAdmin();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [modalType, setModalType] = useState<"preview" | "test" | null>(null);
@@ -141,217 +141,192 @@ export default function EmailTemplatesListPage() {
   }, [searchQuery, itemsPerPage]);
 
   return (
-    <AdminDashboardWrapper>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent mb-2">Email Templates</h1>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent mb-2">Email Templates</h1>
+        </div>
+
+        {hasPermission("email_templates", "create") && (
           <button
             onClick={handleOpenCreate}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-white/15 to-white/10 hover:from-white/20 hover:to-white/15 text-white font-medium transition-all border border-white/[0.1]">
             <Plus size={18} />
             New Template
           </button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
-            <p className="text-white/40 text-sm font-medium mb-2">Total Templates</p>
-            <p className="text-3xl font-bold text-white/90">{templates.length}</p>
-          </div>
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
-            <p className="text-white/40 text-sm font-medium mb-2">Active</p>
-            <p className="text-3xl font-bold text-white/90">{templates.filter(t => String(t.status) === "1").length}</p>
-          </div>
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
-            <p className="text-white/40 text-sm font-medium mb-2">Inactive</p>
-            <p className="text-3xl font-bold text-white/90">{templates.filter(t => String(t.status) === "0").length}</p>
-          </div>
-          {/* <div className="p-6 rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
-            <p className="text-white/40 text-sm font-medium mb-2">Recent Updates</p>
-            <p className="text-3xl font-bold text-white/90">{templates.filter(u => {
-              const d = new Date(u.updatedAt);
-              const now = new Date();
-              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-              return d >= weekAgo && d <= now;
-            }).length}</p>
-          </div> */}
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={20} />
-          <input
-            type="text"
-            placeholder="Search by name or subject..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 rounded-xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08] text-white/90 placeholder-white/30 focus:outline-none focus:border-white/[0.2]"
-          />
-        </div>
-
-        {/* Top Pagination Controls */}
-        {totalItems > 0 && (
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            itemsPerPage={itemsPerPage}
-            setItemsPerPage={setItemsPerPage}
-            totalItems={totalItems}
-            totalPages={totalPages}
-          />
         )}
+      </div>
 
-        {/* Templates Table */}
-        {isLoading ? (
-          <div className="py-20 text-center text-white/40">Loading templates...</div>
-        ) : filteredTemplates.length === 0 ? (
-          <div className="py-20 text-center text-white/40">
-            {searchQuery ? "No templates match your search." : "No email templates found. Create your first one!"}
-          </div>
-        ) : (
-          <div className="rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/[0.08]">
-                    <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Template Name</th>
-                    {/* <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Email Subject</th> */}
-                    {/* <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Variables</th> */}
-                    <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Created At</th>
-                    <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Updated At</th>
-                    <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Status</th>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
+          <p className="text-white/40 text-sm font-medium mb-2">Total Templates</p>
+          <p className="text-3xl font-bold text-white/90">{templates.length}</p>
+        </div>
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
+          <p className="text-white/40 text-sm font-medium mb-2">Active</p>
+          <p className="text-3xl font-bold text-white/90">{templates.filter(t => String(t.status) === "1").length}</p>
+        </div>
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
+          <p className="text-white/40 text-sm font-medium mb-2">Inactive</p>
+          <p className="text-3xl font-bold text-white/90">{templates.filter(t => String(t.status) === "0").length}</p>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={20} />
+        <input
+          type="text"
+          placeholder="Search by template name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-12 pr-4 py-3 rounded-xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08] text-white/90 placeholder-white/30 focus:outline-none focus:border-white/[0.2]"
+        />
+      </div>
+
+      {/* Top Pagination Controls */}
+      {totalItems > 0 && (
+        <PaginationControls
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
+          totalItems={totalItems}
+          totalPages={totalPages}
+        />
+      )}
+
+      {/* Templates Table */}
+      {isLoading ? (
+        <div className="py-20 text-center text-white/40">Loading templates...</div>
+      ) : filteredTemplates.length === 0 ? (
+        <div className="py-20 text-center text-white/40">
+          {searchQuery ? "No templates match your search." : "No email templates found. Create your first one!"}
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-gradient-to-br from-[#141414] to-[#0f0f0f] border border-white/[0.08]">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/[0.08]">
+                  <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Template Name</th>
+                  <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Created At</th>
+                  <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Updated At</th>
+                  <th className="text-left py-4 px-6 text-white/50 text-sm font-medium">Status</th>
+                  {(hasPermission("email_templates", "test_mail") || hasPermission("email_templates", "edit")) && (
                     <th className="text-right py-4 px-6 text-white/50 text-sm font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedTemplates.map((template, index) => (
-                    <tr
-                      key={template.id}
-                      className={`border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${index === filteredTemplates.length - 1 ? 'border-b-0' : ''
-                        }`}>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <p className="text-white/90 font-medium">
-                              {template.name}
-                            </p>
-                          </div>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedTemplates.map((template, index) => (
+                  <tr
+                    key={template.id}
+                    className={`border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${index === filteredTemplates.length - 1 ? 'border-b-0' : ''
+                      }`}>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="text-white/90 font-medium">
+                            {template.name}
+                          </p>
                         </div>
-                      </td>
-                      {/* <td className="py-4 px-6">
-                        <p className="font-medium text-[14px] text-white/90 tracking-wide" title={template.subject}>
-                          {template.subject}
-                        </p>
-                      </td> */}
-                      {/* <td className="py-4 px-6">
-                        <p className="text-white/40 text-sm">
-                          {template.body.split("{{").length - 1} used
-                        </p>
-                      </td> */}
-                      <td className="py-4 px-6">
-
-                        <span className="text-white/90 text-xs tracking-wide">{format(new Date(template.createdAt), "dd MMM yyyy, h:mm:ss a")}</span>
-                        {/* <p className="text-white/40 text-sm">
-                        
-                          {new Date(template.createdAt).toLocaleString('en-US', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          }).replace(',', ',')}
-                        </p> */}
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="text-white/90 text-xs tracking-wide">{format(new Date(template.updatedAt), "dd MMM yyyy, h:mm:ss a")}</span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5 ${String(template.status) === "1"
-                          ? "bg-[#ffffff0f] text-white border border-white/20"
-                          : "bg-[#ffffff0f] text-white/50"
-                          }`}>
-                          {String(template.status) === "1" ? (
-                            <>
-                              Active
-                            </>
-                          ) : (
-                            <>
-                              Inactive
-                            </>
-                          )}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-end gap-1">
-
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="text-white/90 text-xs tracking-wide">{format(new Date(template.createdAt), "dd MMM yyyy, h:mm:ss a")}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="text-white/90 text-xs tracking-wide">{format(new Date(template.updatedAt), "dd MMM yyyy, h:mm:ss a")}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5 ${String(template.status) === "1"
+                        ? "bg-[#ffffff0f] text-white border border-white/20"
+                        : "bg-[#ffffff0f] text-white/50"
+                        }`}>
+                        {String(template.status) === "1" ? (
+                          <>
+                            Active
+                          </>
+                        ) : (
+                          <>
+                            Inactive
+                          </>
+                        )}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-end gap-1">
+                        {hasPermission("email_templates", "edit") && (
                           <button
                             onClick={() => handleOpenEdit(template)}
                             className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.05]"
-                          // title="Edit"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
                           </button>
+                        )}
+                        {hasPermission("email_templates", "test_mail") && (
                           <button
                             onClick={() => { setSelectedTemplate(template); setModalType("test"); }}
                             className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.05]"
-                          // title="Send Test"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
                           </button>
-
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Bottom Pagination Controls */}
-        {totalItems > 0 && (
-          <PaginationControls
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            itemsPerPage={itemsPerPage}
-            setItemsPerPage={setItemsPerPage}
-            totalItems={totalItems}
-            totalPages={totalPages}
-          />
-        )}
+      {/* Bottom Pagination Controls */}
+      {totalItems > 0 && (
+        <PaginationControls
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
+          totalItems={totalItems}
+          totalPages={totalPages}
+        />
+      )}
 
-        {/* Test Email Modal */}
-        <Modal
-          isOpen={modalType === "test"}
-          onClose={() => setModalType(null)}
-          title="Send Test Email"
-          size="md"
-        >
-          <div className="space-y-6">
-            <div className="p-4 rounded-xl bg-gradient-to-r from-white/[0.05] to-white/[0.02] border border-white/[0.08]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeOpacity="0.6" strokeWidth="2"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
-                </div>
-                <div>
-                  <p className="text-white/70 font-medium">Confirm Send Test Mail</p>
-                  <p className="text-white/40 text-sm">Send a test email for <span className="text-white font-medium">"{selectedTemplate?.name}"</span> to your inbox.</p>
-                </div>
+      {/* Test Email Modal */}
+      <Modal
+        isOpen={modalType === "test"}
+        onClose={() => setModalType(null)}
+        title="Send Test Email"
+        size="md"
+      >
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl bg-gradient-to-r from-white/[0.05] to-white/[0.02] border border-white/[0.08]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeOpacity="0.6" strokeWidth="2"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+              </div>
+              <div>
+                <p className="text-white/70 font-medium">Confirm Send Test Mail</p>
+                <p className="text-white/40 text-sm">Send a test email for <span className="text-white font-medium">"{selectedTemplate?.name}"</span> to your inbox.</p>
               </div>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white/70">Recipient Email Address</label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-[#0f0f0f] border border-white/[0.08] text-white/90 placeholder-white/30 focus:outline-none focus:border-white/[0.2]"
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/70">Recipient Email Address</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-[#0f0f0f] border border-white/[0.08] text-white/90 placeholder-white/30 focus:outline-none focus:border-white/[0.2]"
+            />
+          </div>
+          {hasPermission("email_templates", "test_mail") && (
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setModalType(null)}
@@ -367,9 +342,17 @@ export default function EmailTemplatesListPage() {
                 {isSubmitting ? "Sending..." : "Confirm"}
               </button>
             </div>
-          </div>
-        </Modal>
-      </div>
+          )}
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+export default function EmailTemplatesListPage() {
+  return (
+    <AdminDashboardWrapper requireModule="email_templates">
+      <EmailTemplatesListContent />
     </AdminDashboardWrapper>
   );
 }

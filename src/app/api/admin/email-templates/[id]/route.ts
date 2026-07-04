@@ -3,6 +3,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAdminFromRequest } from "@/lib/admin/getAdminFromRequest";
+import { parseDeviceInfo } from "@/lib/admin/device";
+import { logAdminActivity } from "@/lib/admin/logAdminActivity";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string; }>; }) {
     try {
@@ -83,6 +85,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
 
         // =============================
+        // STEP 4.5: FETCH EXISTING EMAIL TEMPLATE
+        // =============================
+        const template = await db.emailTemplate.findUnique({
+            where: { id }
+        });
+
+        if (!template) {
+            return NextResponse.json({ error: "Template not found" }, { status: 404 });
+        }
+
+        // =============================
         // STEP 5: UPDATE EMAIL TEMPLATE
         // =============================
         const updatedTemplate = await db.emailTemplate.update({
@@ -96,7 +109,41 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         });
 
         // =============================
-        // STEP 6: RETURN SUCCESS RESPONSE
+        // STEP 6: LOG ADMIN ACTIVITY
+        // =============================
+        const userAgent = req.headers.get("user-agent") || "unknown";
+        const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+        const { device, browser } = parseDeviceInfo(userAgent);
+
+        await logAdminActivity({
+            logAction: "EMAIL_TEMPLATE_UPDATED",
+            logMessage: `Email template updated successfully`,
+            adminId: admin.id,
+            adminName: `${admin.first_name} ${admin.last_name}`,
+            ipAddress,
+            userAgent,
+            device,
+            browser,
+            rawData: {
+                newData: {
+                    name: updatedTemplate.name,
+                    // slug: updatedTemplate.slug,
+                    subject: updatedTemplate.subject,
+                    // body: updatedTemplate.body,
+                    status: updatedTemplate.status === "1" ? "Active" : "Inactive",
+                },
+                oldData: {
+                    name: template.name,
+                    // slug: template.slug,
+                    subject: template.subject,
+                    // body: template.body,
+                    status: template.status === "1" ? "Active" : "Inactive",
+                },
+            },
+        });
+
+        // =============================
+        // STEP 7: RETURN SUCCESS RESPONSE
         // =============================
         return NextResponse.json({
             success: true,

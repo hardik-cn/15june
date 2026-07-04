@@ -165,8 +165,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             data
         });
 
+        // } catch (error) {
+        //     console.error("Error fetching KYC details:", error);
+        //     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+        // }
     } catch (error) {
-        console.error("Error fetching KYC details:", error);
+        console.error("Error fetching KYC details", {
+            message: error instanceof Error ? error.message : "Unknown error",
+        });
+
         return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

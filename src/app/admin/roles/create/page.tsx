@@ -9,7 +9,7 @@ import { adminFetch } from "@/lib/admin/adminFetch";
 
 // ─── Permission config ────────────────────────────────────────────────────────
 
-type PermKey = "view" | "create" | "edit" | "delete" | "approve" | "reject" | "send_mail" | "didit_inreview";
+type PermKey = "view" | "create" | "edit" | "delete" | "approve" | "reject" | "send_mail" | "didit_inreview" | "test_mail";
 
 interface ModuleConfig {
     key: string;
@@ -23,6 +23,7 @@ const MODULES: ModuleConfig[] = [
     { key: "kyc_approved", label: "KYC – Approved", perms: ["view"] },
     { key: "kyc_rejected", label: "KYC – Rejected", perms: ["view", "send_mail"] },
     { key: "didit_inreview", label: "Didit In Review by Admin", perms: ["view"] },
+    { key: "email_templates", label: "Email Templates", perms: ["view", "create", "edit", "test_mail"] },
     { key: "onbusers", label: "User Management", perms: ["view", "edit", "delete"] },
     { key: "onbusers_deleted", label: "User Deleted", perms: ["view", "edit"] },
     { key: "staff", label: "Admin Management", perms: ["view", "create", "edit", "delete"] },
@@ -40,6 +41,7 @@ const PERM_LABEL: Record<PermKey, string> = {
     reject: "Reject",
     send_mail: "Send Mail",
     didit_inreview: "Didit In Review",
+    test_mail: "Test Mail",
 };
 
 type PermissionsState = Record<string, Record<PermKey, boolean>>;
@@ -219,7 +221,7 @@ export default function CreateRolePage() {
                         </div>
                         <label className="inline-flex items-center gap-3 px-4 py-2 mt-4 sm:mt-0 rounded-xl bg-white/[0.03] border border-white/[0.05] cursor-pointer group hover:bg-white/[0.06] hover:border-white/[0.1] transition-all">
                             <CB checked={isAllSelected} onChange={toggleAll} />
-                            <span className="text-white/60 font-semibold group-hover:text-white/90 transition-colors tracking-widest">Select All</span>
+                            <span className="text-white/60 font-semibold group-hover:text-white/90 transition-colors tracking-widest text-sm">Select All</span>
                         </label>
                     </div>
 
@@ -239,7 +241,7 @@ export default function CreateRolePage() {
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-3 xl:gap-8 xl:flex-1">
-                                    {(["view", "create", "edit", "delete", "approve", "reject", "send_mail", "didit_inreview"] as PermKey[]).map(perm => {
+                                    {(["view", "create", "edit", "delete", "approve", "reject", "send_mail", "didit_inreview", "test_mail"] as PermKey[]).map(perm => {
                                         const supported = mod.perms.includes(perm);
                                         if (!supported) return null;
                                         const isChecked = !!permissions[mod.key]?.[perm];
