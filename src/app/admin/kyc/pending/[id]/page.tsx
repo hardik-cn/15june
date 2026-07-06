@@ -108,6 +108,7 @@ function KYCDetailsContent() {
     const closeModal = () => { setModalType(null); setRejectReason(""); };
 
     const { hasPermission, userData: adminData } = useAdmin();
+    const isSuperAdmin = adminData?.roleName?.toLowerCase().includes("super");
 
     const hasFetched = useRef(false);
     useEffect(() => {
@@ -1417,7 +1418,7 @@ function KYCDetailsContent() {
                                     )}
 
                                     {hasPermission("kyc_pending", "approve") && kycData.status === "pending" && (
-                                        kycData?.diditSession?.status === "In Review" ? (
+                                        kycData?.diditSession?.status === "In Review" && !isSuperAdmin ? (
                                             <button
                                                 onClick={() => openModal("send_approval")}
                                                 className="px-4 py-2 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 text-sm font-medium transition-all flex items-center gap-2"

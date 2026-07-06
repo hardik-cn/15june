@@ -55,7 +55,7 @@ export async function sendSlackNotification(
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `<@U0A6GAAS0AG>, KYC is in review and awaiting your approval.`,
+                    text: `<@U0BBZ2ZV5J6>, KYC is in review and awaiting your approval.`,
                 },
             },
             // Row 1: Name + Email

@@ -7,6 +7,9 @@ import { logAdminActivity } from "@/lib/admin/logAdminActivity";
 import { parseDeviceInfo } from "@/lib/admin/device";
 import { getISTDateWithOffset } from "@/lib/getISTDate";
 import { decodeId } from "@/lib/admin/encodeId";
+import { sendTemplateEmail } from "@/lib/emails/sendTemplateEmail";
+import { sendSlackNotification as sendApprovalSlackNotification } from "@/lib/slack/admin/kyc/send_approval/sendSlackNotification";
+import { sendSlackNotification as sendRejectionSlackNotification } from "@/lib/slack/admin/kyc/rejection/sendSlackNotification";
 
 export async function GET(request: Request) {
     try {
@@ -206,7 +209,14 @@ export async function PATCH(request: Request) {
             const profile = await db.kycProfile.findUnique({
                 where: { id: numericId },
                 select: {
-                    userId: true
+                    userId: true,
+                    user: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                        }
+                    }
                 }
             });
 
@@ -241,6 +251,21 @@ export async function PATCH(request: Request) {
                     updatedAt: getISTDateWithOffset(0),
                 }
             });
+
+            if (profile && profile.user && profile.user.email) {
+                await sendTemplateEmail({
+                    templateSlug: "kyc-verification-approved",
+                    to: profile.user.email,
+                    variables: {
+                        first_name: profile.user.firstName,
+                        last_name: profile.user.lastName,
+                        support_email: "support@cantech.in",
+                        current_year: new Date().getFullYear().toString(),
+                    },
+                }).catch((error) => {
+                    console.error("KYC verification approved email sent failed", error);
+                });
+            }
         }
 
         // =============================
@@ -320,29 +345,25 @@ export async function PATCH(request: Request) {
                 userAgent: request.headers.get("user-agent") || "unknown",
             });
 
-            import("@/lib/slack/admin/kyc/send_approval/sendSlackNotification")
-                .then(({ sendSlackNotification }) => {
-                    sendSlackNotification(
-                        {
-                            firstName: updatedProfile.firstName,
-                            lastName: updatedProfile.lastName,
-                            email: updatedProfile.email,
-                            phone: updatedProfile.phone,
-                            countryCode: updatedProfile.user?.countryCode || "",
-                            accountType: updatedProfile.accountType,
-                            companyName: updatedProfile.companyName || undefined,
-                            streetAddress: updatedProfile.streetAddress || undefined,
-                            city: updatedProfile.city || undefined,
-                            postalCode: updatedProfile.postalCode || undefined,
-                            country: updatedProfile.country || undefined,
-                            sentBy: `${adminName} (${adminRoleName})`
-                        },
-                        "KYC In Review - Awaiting Admin Approval"
-                    );
-                })
-                .catch((err) =>
-                    console.error("Slack notification failed:", err)
-                );
+            sendApprovalSlackNotification(
+                {
+                    firstName: updatedProfile.firstName,
+                    lastName: updatedProfile.lastName,
+                    email: updatedProfile.email,
+                    phone: updatedProfile.phone,
+                    countryCode: updatedProfile.user?.countryCode || "",
+                    accountType: updatedProfile.accountType,
+                    companyName: updatedProfile.companyName || undefined,
+                    streetAddress: updatedProfile.streetAddress || undefined,
+                    city: updatedProfile.city || undefined,
+                    postalCode: updatedProfile.postalCode || undefined,
+                    country: updatedProfile.country || undefined,
+                    sentBy: `${adminName} (${adminRoleName})`
+                },
+                "KYC In Review - Awaiting Admin Approval"
+            ).catch((err) =>
+                console.error("Slack notification failed:", err)
+            );
         }
 
         // =============================
@@ -530,30 +551,43 @@ export async function PATCH(request: Request) {
 
             const adminRoleName = adminRole?.name ?? "Admin";
 
-            import("@/lib/slack/admin/kyc/rejection/sendSlackNotification")
-                .then(({ sendSlackNotification }) => {
-                    sendSlackNotification(
-                        {
-                            firstName: rejectedProfile.firstName,
-                            lastName: rejectedProfile.lastName,
-                            email: rejectedProfile.email,
-                            phone: rejectedProfile.phone,
-                            countryCode: userData?.countryCode || "",
-                            accountType: rejectedProfile.accountType,
-                            companyName: rejectedProfile.companyName || undefined,
-                            streetAddress: rejectedProfile.streetAddress || undefined,
-                            postalCode: rejectedProfile.postalCode || undefined,
-                            city: rejectedProfile.city || undefined,
-                            country: rejectedProfile.country || undefined,
-                            rejectionReason: rejectionReason || "No reason provided",
-                            rejectedBy: `${rejectedByAdmin} (${adminRoleName})`,
-                        },
-                        "KYC Rejected - Incomplete Information"
-                    );
-                })
-                .catch((err) =>
-                    console.error("Slack notification failed:", err)
-                );
+            sendRejectionSlackNotification(
+                {
+                    firstName: rejectedProfile.firstName,
+                    lastName: rejectedProfile.lastName,
+                    email: rejectedProfile.email,
+                    phone: rejectedProfile.phone,
+                    countryCode: userData?.countryCode || "",
+                    accountType: rejectedProfile.accountType,
+                    companyName: rejectedProfile.companyName || undefined,
+                    streetAddress: rejectedProfile.streetAddress || undefined,
+                    postalCode: rejectedProfile.postalCode || undefined,
+                    city: rejectedProfile.city || undefined,
+                    country: rejectedProfile.country || undefined,
+                    rejectionReason: rejectionReason || "No reason provided",
+                    rejectedBy: `${rejectedByAdmin} (${adminRoleName})`,
+                },
+                "KYC Rejected - Incomplete Information"
+            ).catch((err) =>
+                console.error("Slack notification failed:", err)
+            );
+
+            if (rejectedProfile && rejectedProfile.email) {
+                await sendTemplateEmail({
+                    templateSlug: "kyc-verification-rejected",
+                    to: rejectedProfile.email,
+                    variables: {
+                        first_name: rejectedProfile.firstName,
+                        last_name: rejectedProfile.lastName,
+                        rejection_reason: rejectionReason || "No reason provided",
+                        reject_reason: rejectionReason || "No reason provided",
+                        support_email: "support@cantech.in",
+                        current_year: new Date().getFullYear().toString(),
+                    },
+                }).catch((error) => {
+                    console.error("KYC verification rejected email sent failed", error);
+                });
+            }
         }
 
         // =============================

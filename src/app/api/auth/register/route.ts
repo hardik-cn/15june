@@ -56,12 +56,12 @@ export async function POST(req: Request) {
 
         const redisEmailVerified = await redis.get(`otp:email:verified:${normalizedEmail}`);
 
-        if (!redisEmailVerified) {
-            return NextResponse.json(
-                { error: "Email verification required" },
-                { status: 400 }
-            );
-        }
+        // if (!redisEmailVerified) {
+        //     return NextResponse.json(
+        //         { error: "Email verification required" },
+        //         { status: 400 }
+        //     );
+        // }
 
         const fullPhone = normalizePhone(countryCode, normalizedPhone);
 
@@ -74,12 +74,12 @@ export async function POST(req: Request) {
 
         console.log("PHONE VERIFIED VALUE:", redisPhoneVerified);
 
-        if (!redisPhoneVerified) {
-            return NextResponse.json(
-                { error: "Phone verification required" },
-                { status: 400 }
-            );
-        }
+        // if (!redisPhoneVerified) {
+        //     return NextResponse.json(
+        //         { error: "Phone verification required" },
+        //         { status: 400 }
+        //     );
+        // }
 
 
         // Check existing user
